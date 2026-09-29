@@ -55,12 +55,12 @@
   </header>
   <div class="bar"><b id="message">出席番号でログインしてください</b><span>操作は数秒以内に全員へ反映されます</span></div>
   <section id="admin"></section>
-  <p class="note">自分の左右にある座席の番号を選べます。途中に通路があっても、隣り合う座席なら選択できます。相手もあなたを選ぶとペアが成立します。</p>
+  <p class="note">2人組は左右の席を選びます。3人組では、左右のペアができたあとに、3人目が前後の席から参加できます。</p>
   <main><div class="board" id="board"></div></main>
   <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="modal-card">
       <h2 id="loginTitle">ログイン</h2>
-      <p>出席番号を入力してください。</p>
+      <p>出席番号を入力してください。管理者は99です。</p>
       <div class="modal-row"><input id="attendanceNo" inputmode="numeric" placeholder="出席番号" aria-label="出席番号"><button id="loginButton">ログイン</button></div>
     </div>
   </div>
@@ -87,6 +87,15 @@
       const index = row.indexOf(no);
       return [row[index - 1], row[index + 1]].filter(Boolean);
     };
+    const verticalNeighborsFor = (no) => {
+      const rowIndex = ROWS.findIndex((blocks) => blocks.flat().includes(no));
+      if (rowIndex < 0) return [];
+      const seatIndex = ROWS[rowIndex].flat().indexOf(no);
+      return [ROWS[rowIndex - 1], ROWS[rowIndex + 1]]
+        .filter(Boolean)
+        .map((blocks) => blocks.flat()[seatIndex])
+        .filter(Boolean);
+    };
     const groupKey = (group) => [...group].sort((a, b) => a - b).join("-");
     const message = (text) => { document.querySelector("#message").textContent = text; };
     const configured = () => API_URL !== "PASTE_APPS_SCRIPT_WEB_APP_URL";
@@ -97,9 +106,15 @@
       for (let no = 1; no <= 40; no += 1) {
         const selected = state.selections[no];
         if (selected && state.selections[selected] === no && !used.has(no) && !used.has(selected)) {
-          let group = [no, selected];
-          const available = blockFor(no).filter((seatNo) => !state.absent.includes(seatNo));
-          if (available.length === 3 && available.includes(selected)) group = available;
+          const third = Array.from({ length: 40 }, (_, index) => index + 1).find((seatNo) =>
+            !used.has(seatNo) &&
+            seatNo !== no &&
+            seatNo !== selected &&
+            !state.absent.includes(seatNo) &&
+            (state.selections[seatNo] === no || state.selections[seatNo] === selected) &&
+            (verticalNeighborsFor(seatNo).includes(no) || verticalNeighborsFor(seatNo).includes(selected))
+          );
+          const group = third ? [no, selected, third] : [no, selected];
           group.forEach((seatNo) => used.add(seatNo));
           result.push(group);
         }
@@ -158,8 +173,11 @@
     function choose(target) {
       if (!userNo || userNo === 99 || target === userNo || state.absent.includes(target)) return;
       const members = memberMap();
-      const selectable = members[userNo] ? members[userNo].includes(target) : neighborsFor(userNo).includes(target);
-      if (!selectable) return message("自分の左右にある座席の番号を選んでください");
+      const targetHasPair = state.selections[target] && state.selections[state.selections[target]] === target;
+      const selectable = members[userNo]
+        ? members[userNo].includes(target)
+        : neighborsFor(userNo).includes(target) || (verticalNeighborsFor(userNo).includes(target) && targetHasPair);
+      if (!selectable) return message("左右の席、または成立済みペアの前後席を選んでください");
       const next = structuredClone(state);
       next.selections[userNo] = target;
       message(`${target}番を選びました。相手もあなたを選ぶとペアが成立します。`);
@@ -189,7 +207,10 @@
           const absent = state.absent.includes(no);
           const group = members[no];
           const groupIndex = group ? pairedGroups.findIndex((item) => item.includes(no)) : -1;
-          const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo] ? members[userNo].includes(no) : neighborsFor(userNo).includes(no));
+          const targetHasPair = state.selections[no] && state.selections[state.selections[no]] === no;
+          const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo]
+            ? members[userNo].includes(no)
+            : neighborsFor(userNo).includes(no) || (verticalNeighborsFor(userNo).includes(no) && targetHasPair));
           const seat = document.createElement("div");
           seat.className = `seat ${absent ? "absent" : selectable ? "can-select" : ""}`;
           if (group) seat.style.background = COLORS[groupIndex % COLORS.length];
