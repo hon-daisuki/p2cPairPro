@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P2C 座席ペア</title>
+  <style>
+    :root { color-scheme: light; --ink:#16241e; --line:#cbd7cf; --green:#16734d; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f6faf7; color:var(--ink); font-family:"Yu Gothic", Meiryo, sans-serif; }
+    header,.bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 5%; background:#fff; border-bottom:1px solid var(--line); }
+    h1 { margin:0; font-size:22px; }
+    .bar { background:#e7f2eb; font-size:13px; }
+    input { width:100px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
+    button { border:0; border-radius:4px; background:var(--green); color:#fff; padding:8px 10px; font-weight:bold; cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.55; }
+    .settings { max-width:1350px; margin:12px auto; padding:14px; background:#fff; border:1px solid var(--line); }
+    .nums button { min-width:31px; margin:2px; background:#edf2ee; color:#234; }
+    .nums .off { background:#7b8580; color:#fff; }
+    main { overflow:auto; }
+    .board { display:grid; grid-template-columns:max-content max-content max-content; gap:0 36px; width:max-content; min-width:1120px; margin:26px auto; }
+    .block { display:grid; grid-template-columns:repeat(3,112px); }
+    .block.mid { grid-template-columns:repeat(4,112px); }
+    .seat { display:flex; flex-direction:column; min-height:122px; gap:7px; padding:7px; text-align:center; border:1px solid #9aa59e; background:#fff; }
+    .seat > b { margin:-7px -7px 0; padding:6px; background:#ffe64e; font-size:19px; }
+    .seat small { color:#52695d; }
+    .seat.absent { background:#aeb6b1; }
+    .seat.absent > b { background:#7b8580; color:#fff; }
+    .seat.can-select { cursor:pointer; box-shadow:inset 0 0 0 2px #238d5e; }
+    .progress { margin-top:auto; padding-top:5px; border-top:1px solid #678; font-size:12px; }
+    .progress b { font-size:13px; }
+    .progress button { float:right; padding:4px 7px; }
+    .note { max-width:1350px; margin:10px auto; padding:0 14px; color:#52695d; font-size:12px; }
+    @media (max-width:700px) { header,.bar { flex-direction:column; align-items:flex-start; } .board { margin-left:15px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>P2C 座席ペア・環境チェック</h1>
+    <div><input id="attendanceNo" inputmode="numeric" placeholder="出席番号"><button id="loginButton">ログイン</button></div>
+  </header>
+  <div class="bar"><b id="message">出席番号でログインしてください</b><span>操作は数秒以内に全員へ反映されます</span></div>
+  <section id="admin"></section>
+  <p class="note">自分と同じ座席ブロックの番号を選べます。相手も自分を選ぶとペアが成立します。</p>
+  <main><div class="board" id="board"></div></main>
+  <script>
+    // Deploy the Apps Script web app, then replace this value with its /exec URL.
+    const API_URL = "https://script.google.com/macros/s/AKfycbzRcQOHhm-Ug4bRnabw4rWoxFSTp9Lt2lhy2iT4fXcYWYKTQVZGYSpCpTURQCR2u3xV5Q/exec";
+    const BLOCKS = [[12,8,2],[36,17,23],[10,14,6],[5,37,7],[39,29,28,9],[1,20,13,16],[30,18,21,15],[11,40,3,22],[33,24,19],[4,26,27],[25,31,35],[32,38,34]];
+    const STAGES = ["環境チェック","検索チェック","登録チェック","更新チェック","削除チェック"];
+    const COLORS = ["#f7cc57", "#61c3d7", "#f39a7a", "#9dc77e", "#b7a2e4", "#e792b7"];
+    let state;
+    let userNo = null;
+
+    const blockFor = (no) => BLOCKS.find((block) => block.includes(no)) || [];
+    const groupKey = (group) => [...group].sort((a, b) => a - b).join("-");
+    const message = (text) => { document.querySelector("#message").textContent = text; };
+    const configured = () => API_URL !== "PASTE_APPS_SCRIPT_WEB_APP_URL";
+
+    function groups() {
+      const result = [];
+      const used = new Set();
+      for (let no = 1; no <= 40; no += 1) {
+        const selected = state.selections[no];
+        if (selected && state.selections[selected] === no && !used.has(no) && !used.has(selected)) {
+          let group = [no, selected];
+          const available = blockFor(no).filter((seatNo) => !state.absent.includes(seatNo));
+          if (available.length === 3 && available.includes(selected)) group = available;
+          group.forEach((seatNo) => used.add(seatNo));
+          result.push(group);
+        }
+      }
+      return result;
+    }
+
+    function memberMap() {
+      const members = {};
+      groups().forEach((group) => group.forEach((no) => { members[no] = group; }));
+      return members;
+    }
+
+    async function load() {
+      if (!configured()) return;
+      try {
+        const response = await fetch(`${API_URL}?action=get&t=${Date.now()}`, { cache: "no-store" });
+        const data = await response.json();
+        state = data.state;
+        draw();
+      } catch (_) {
+        message("データに接続できません。先生に知らせてください。");
+      }
+    }
+
+    async function save(nextState) {
+      try {
+        const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState) });
+        const response = await fetch(`${API_URL}?${params.toString()}`, { cache: "no-store" });
+        const data = await response.json();
+        state = data.state;
+        if (!response.ok || data.error) message("他の操作が先に反映されました。画面を確認して、もう一度操作してください。");
+        draw();
+      } catch (_) {
+        message("保存できませんでした。通信を確認してください。");
+      }
+    }
+
+    function login() {
+      const no = Number(document.querySelector("#attendanceNo").value);
+      if (!Number.isInteger(no) || (!(no >= 1 && no <= 40) && no !== 99)) return message("1〜40、管理者は99を入力してください");
+      if (no !== 99 && state.absent.includes(no)) return message("この番号は欠席に設定されているためログインできません");
+      userNo = no;
+      message(no === 99 ? "管理者としてログインしました" : `${no}番でログインしました`);
+      draw();
+    }
+
+    function choose(target) {
+      if (!userNo || userNo === 99 || target === userNo || state.absent.includes(target)) return;
+      const members = memberMap();
+      const selectable = members[userNo] ? members[userNo].includes(target) : blockFor(userNo).includes(target);
+      if (!selectable) return message("同じ座席ブロックの番号を選んでください");
+      const next = structuredClone(state);
+      next.selections[userNo] = target;
+      message(`${target}番を選びました。相手もあなたを選ぶとペアが成立します。`);
+      save(next);
+    }
+
+    function advance(no) {
+      const group = memberMap()[no];
+      if (!group || no === userNo) return;
+      const next = structuredClone(state);
+      const key = groupKey(group);
+      next.progress[key] = (next.progress[key] || 1) + 1;
+      save(next);
+    }
+
+    function draw() {
+      if (!state) return;
+      const members = memberMap();
+      const pairedGroups = groups();
+      const board = document.querySelector("#board");
+      board.innerHTML = "";
+      BLOCKS.forEach((block, index) => {
+        const blockElement = document.createElement("div");
+        blockElement.className = `block ${block.length === 4 ? "mid" : ""}`;
+        blockElement.style.gridColumn = index < 4 ? 1 : index < 8 ? 2 : 3;
+        blockElement.style.gridRow = (index % 4) + 1;
+        block.forEach((no) => {
+          const absent = state.absent.includes(no);
+          const group = members[no];
+          const groupIndex = group ? pairedGroups.findIndex((item) => item.includes(no)) : -1;
+          const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo] ? members[userNo].includes(no) : blockFor(userNo).includes(no));
+          const seat = document.createElement("div");
+          seat.className = `seat ${absent ? "absent" : selectable ? "can-select" : ""}`;
+          if (group) seat.style.background = COLORS[groupIndex % COLORS.length];
+          const status = absent ? "欠席" : group ? `${group.join("・")}番` : state.selections[no] ? `${state.selections[no]}番を選択中` : "未成立";
+          seat.innerHTML = `<b>${no}</b><small>${status}</small>`;
+          if (group) {
+            const progress = state.progress[groupKey(group)] || 1;
+            const stageIndex = Math.floor((progress - 1) / state.maxCount);
+            const count = (progress - 1) % state.maxCount + 1;
+            const finished = stageIndex >= STAGES.length;
+            seat.insertAdjacentHTML("beforeend", `<div class="progress"><b>${finished ? "！提出！" : STAGES[stageIndex]}</b><br>${finished ? "完了" : `${count} / ${state.maxCount}`}${userNo && userNo !== 99 && no !== userNo && !finished ? "<button>完了</button>" : ""}</div>`);
+            seat.querySelector("button")?.addEventListener("click", (event) => { event.stopPropagation(); advance(no); });
+          }
+          if (selectable) seat.addEventListener("click", () => choose(no));
+          blockElement.appendChild(seat);
+        });
+        board.appendChild(blockElement);
+      });
+      drawAdmin();
+    }
+
+    function drawAdmin() {
+      const admin = document.querySelector("#admin");
+      if (userNo !== 99) { admin.innerHTML = ""; return; }
+      admin.innerHTML = `<div class="settings"><label>各チェックの最大回数 <input id="maxCount" type="number" min="1" value="${state.maxCount}"></label> <button id="saveMax">保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div></div>`;
+      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCount = Math.max(1, Number(document.querySelector("#maxCount").value) || 1); save(next); });
+      admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
+    }
+
+    document.querySelector("#loginButton").addEventListener("click", login);
+    document.querySelector("#attendanceNo").addEventListener("keydown", (event) => { if (event.key === "Enter") login(); });
+    if (configured()) { load(); setInterval(load, 3500); } else { message("先生の初期設定がまだ完了していません"); }
+  </script>
+</body>
+</html>
