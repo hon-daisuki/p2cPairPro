@@ -21,6 +21,7 @@
     .stage-settings label { display:flex; flex-direction:column; gap:5px; font-size:13px; }
     .stage-settings input { width:100%; }
     .sheet-link { color:#075f40; font-weight:bold; }
+    .danger { background:#b42318; }
     .nums button { min-width:31px; margin:2px; background:#edf2ee; color:#234; }
     .nums .off { background:#7b8580; color:#fff; }
     main { overflow:auto; }
@@ -37,18 +38,32 @@
     .progress b { font-size:13px; }
     .progress button { float:right; padding:4px 7px; }
     .note { max-width:1350px; margin:10px auto; padding:0 14px; color:#52695d; font-size:12px; }
+    .modal { position:fixed; z-index:10; inset:0; display:grid; place-items:center; padding:18px; background:rgba(15, 35, 26, .52); }
+    .modal[hidden] { display:none; }
+    .modal-card { width:min(390px, 100%); padding:24px; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 12px 32px rgba(0,0,0,.22); }
+    .modal-card h2 { margin:0 0 8px; font-size:20px; }
+    .modal-card p { margin:0 0 16px; color:#52695d; font-size:13px; }
+    .modal-row { display:flex; gap:8px; }
+    .modal-row input { flex:1; width:auto; }
     @media (max-width:700px) { header,.bar { flex-direction:column; align-items:flex-start; } .board { margin-left:15px; } .stage-settings { grid-template-columns:repeat(2, minmax(120px, 1fr)); } }
   </style>
 </head>
 <body>
   <header>
     <h1>P2C 座席ペア・環境チェック</h1>
-    <div><input id="attendanceNo" inputmode="numeric" placeholder="出席番号"><button id="loginButton">ログイン</button></div>
+    <button id="openLogin">ログイン</button>
   </header>
   <div class="bar"><b id="message">出席番号でログインしてください</b><span>操作は数秒以内に全員へ反映されます</span></div>
   <section id="admin"></section>
   <p class="note">自分の左右にある座席の番号を選べます。途中に通路があっても、隣り合う座席なら選択できます。相手もあなたを選ぶとペアが成立します。</p>
   <main><div class="board" id="board"></div></main>
+  <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal-card">
+      <h2 id="loginTitle">ログイン</h2>
+      <p>出席番号を入力してください。管理者は99です。</p>
+      <div class="modal-row"><input id="attendanceNo" inputmode="numeric" placeholder="出席番号" aria-label="出席番号"><button id="loginButton">ログイン</button></div>
+    </div>
+  </div>
   <script>
     // Deploy the Apps Script web app, then replace this value with its /exec URL.
     const API_URL = "https://script.google.com/macros/s/AKfycbzRcQOHhm-Ug4bRnabw4rWoxFSTp9Lt2lhy2iT4fXcYWYKTQVZGYSpCpTURQCR2u3xV5Q/exec";
@@ -131,9 +146,11 @@
 
     function login() {
       const no = Number(document.querySelector("#attendanceNo").value);
+      if (!state) return message("データを読み込み中です。少し待ってからログインしてください。");
       if (!Number.isInteger(no) || (!(no >= 1 && no <= 40) && no !== 99)) return message("1〜40、管理者は99を入力してください");
       if (no !== 99 && state.absent.includes(no)) return message("この番号は欠席に設定されているためログインできません");
       userNo = no;
+      document.querySelector("#loginModal").hidden = true;
       message(no === 99 ? "管理者としてログインしました" : `${no}番でログインしました`);
       draw();
     }
@@ -153,8 +170,7 @@
       const group = memberMap()[no];
       if (!group || no === userNo) return;
       const next = structuredClone(state);
-      const key = groupKey(group);
-      next.progress[key] = (next.progress[key] || 1) + 1;
+      next.progress[no] = (next.progress[no] || 1) + 1;
       save(next);
     }
 
@@ -180,7 +196,7 @@
           const status = absent ? "欠席" : group ? `${group.join("・")}番` : state.selections[no] ? `${state.selections[no]}番を選択中` : "未成立";
           seat.innerHTML = `<b>${no}</b><small>${status}</small>`;
           if (group) {
-            const progress = state.progress[groupKey(group)] || 1;
+            const progress = state.progress[no] || 1;
             let remaining = progress;
             let stageIndex = 0;
             while (stageIndex < STAGES.length && remaining > state.maxCounts[STAGES[stageIndex]]) {
@@ -202,12 +218,14 @@
     function drawAdmin() {
       const admin = document.querySelector("#admin");
       if (userNo !== 99) { admin.innerHTML = ""; return; }
-      admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="${adminSettingsOpen}">${adminSettingsOpen ? "設定を隠す" : "設定を表示"}</button></div><div class="settings-body" ${adminSettingsOpen ? "" : "hidden"}><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="1" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div></div></div>`;
+      admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="${adminSettingsOpen}">${adminSettingsOpen ? "設定を隠す" : "設定を表示"}</button></div><div class="settings-body" ${adminSettingsOpen ? "" : "hidden"}><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="1" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div><p><button id="resetState" class="danger">初期化</button></p></div></div>`;
       document.querySelector("#toggleSettings").addEventListener("click", () => { adminSettingsOpen = !adminSettingsOpen; drawAdmin(); });
       document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 1)])); save(next); });
       admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
+      document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・回数設定を初期化します。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, 3])); save(next); });
     }
 
+    document.querySelector("#openLogin").addEventListener("click", () => { document.querySelector("#loginModal").hidden = false; document.querySelector("#attendanceNo").focus(); });
     document.querySelector("#loginButton").addEventListener("click", login);
     document.querySelector("#attendanceNo").addEventListener("keydown", (event) => { if (event.key === "Enter") login(); });
     if (configured()) { load(); setInterval(load, 3500); } else { message("先生の初期設定がまだ完了していません"); }
