@@ -15,6 +15,12 @@
     button { border:0; border-radius:4px; background:var(--green); color:#fff; padding:8px 10px; font-weight:bold; cursor:pointer; }
     button:disabled { cursor:not-allowed; opacity:.55; }
     .settings { max-width:1350px; margin:12px auto; padding:14px; background:#fff; border:1px solid var(--line); }
+    .settings-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .settings-body[hidden] { display:none; }
+    .stage-settings { display:grid; grid-template-columns:repeat(5, minmax(120px, 1fr)); gap:10px; margin:12px 0; }
+    .stage-settings label { display:flex; flex-direction:column; gap:5px; font-size:13px; }
+    .stage-settings input { width:100%; }
+    .sheet-link { color:#075f40; font-weight:bold; }
     .nums button { min-width:31px; margin:2px; background:#edf2ee; color:#234; }
     .nums .off { background:#7b8580; color:#fff; }
     main { overflow:auto; }
@@ -31,7 +37,7 @@
     .progress b { font-size:13px; }
     .progress button { float:right; padding:4px 7px; }
     .note { max-width:1350px; margin:10px auto; padding:0 14px; color:#52695d; font-size:12px; }
-    @media (max-width:700px) { header,.bar { flex-direction:column; align-items:flex-start; } .board { margin-left:15px; } }
+    @media (max-width:700px) { header,.bar { flex-direction:column; align-items:flex-start; } .board { margin-left:15px; } .stage-settings { grid-template-columns:repeat(2, minmax(120px, 1fr)); } }
   </style>
 </head>
 <body>
@@ -41,18 +47,30 @@
   </header>
   <div class="bar"><b id="message">出席番号でログインしてください</b><span>操作は数秒以内に全員へ反映されます</span></div>
   <section id="admin"></section>
-  <p class="note">自分と同じ座席ブロックの番号を選べます。相手も自分を選ぶとペアが成立します。</p>
+  <p class="note">自分の左右にある座席の番号を選べます。途中に通路があっても、隣り合う座席なら選択できます。相手もあなたを選ぶとペアが成立します。</p>
   <main><div class="board" id="board"></div></main>
   <script>
     // Deploy the Apps Script web app, then replace this value with its /exec URL.
     const API_URL = "https://script.google.com/macros/s/AKfycbzRcQOHhm-Ug4bRnabw4rWoxFSTp9Lt2lhy2iT4fXcYWYKTQVZGYSpCpTURQCR2u3xV5Q/exec";
     const BLOCKS = [[12,8,2],[36,17,23],[10,14,6],[5,37,7],[39,29,28,9],[1,20,13,16],[30,18,21,15],[11,40,3,22],[33,24,19],[4,26,27],[25,31,35],[32,38,34]];
     const STAGES = ["環境チェック","検索チェック","登録チェック","更新チェック","削除チェック"];
+    const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1EzSqFql6xOKccvtagwZmxwDFHQRm8TENUUMvVNqrkhk/edit?usp=drivesdk";
+    const ROWS = [
+      [BLOCKS[0], BLOCKS[4], BLOCKS[8]],
+      [BLOCKS[1], BLOCKS[5], BLOCKS[9]],
+      [BLOCKS[2], BLOCKS[6], BLOCKS[10]],
+      [BLOCKS[3], BLOCKS[7], BLOCKS[11]]
+    ];
     const COLORS = ["#f7cc57", "#61c3d7", "#f39a7a", "#9dc77e", "#b7a2e4", "#e792b7"];
     let state;
     let userNo = null;
 
     const blockFor = (no) => BLOCKS.find((block) => block.includes(no)) || [];
+    const neighborsFor = (no) => {
+      const row = ROWS.map((blocks) => blocks.flat()).find((seats) => seats.includes(no)) || [];
+      const index = row.indexOf(no);
+      return [row[index - 1], row[index + 1]].filter(Boolean);
+    };
     const groupKey = (group) => [...group].sort((a, b) => a - b).join("-");
     const message = (text) => { document.querySelector("#message").textContent = text; };
     const configured = () => API_URL !== "PASTE_APPS_SCRIPT_WEB_APP_URL";
@@ -79,12 +97,18 @@
       return members;
     }
 
+    function normalizeState(rawState) {
+      const legacyCount = Math.max(1, Number(rawState.maxCount) || 3);
+      const maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(rawState.maxCounts?.[stage]) || legacyCount)]));
+      return { ...rawState, absent: rawState.absent || [], selections: rawState.selections || {}, progress: rawState.progress || {}, maxCounts };
+    }
+
     async function load() {
       if (!configured()) return;
       try {
         const response = await fetch(`${API_URL}?action=get&t=${Date.now()}`, { cache: "no-store" });
         const data = await response.json();
-        state = data.state;
+        state = normalizeState(data.state);
         draw();
       } catch (_) {
         message("データに接続できません。先生に知らせてください。");
@@ -96,7 +120,7 @@
         const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState) });
         const response = await fetch(`${API_URL}?${params.toString()}`, { cache: "no-store" });
         const data = await response.json();
-        state = data.state;
+        state = normalizeState(data.state);
         if (!response.ok || data.error) message("他の操作が先に反映されました。画面を確認して、もう一度操作してください。");
         draw();
       } catch (_) {
@@ -116,8 +140,8 @@
     function choose(target) {
       if (!userNo || userNo === 99 || target === userNo || state.absent.includes(target)) return;
       const members = memberMap();
-      const selectable = members[userNo] ? members[userNo].includes(target) : blockFor(userNo).includes(target);
-      if (!selectable) return message("同じ座席ブロックの番号を選んでください");
+      const selectable = members[userNo] ? members[userNo].includes(target) : neighborsFor(userNo).includes(target);
+      if (!selectable) return message("自分の左右にある座席の番号を選んでください");
       const next = structuredClone(state);
       next.selections[userNo] = target;
       message(`${target}番を選びました。相手もあなたを選ぶとペアが成立します。`);
@@ -148,7 +172,7 @@
           const absent = state.absent.includes(no);
           const group = members[no];
           const groupIndex = group ? pairedGroups.findIndex((item) => item.includes(no)) : -1;
-          const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo] ? members[userNo].includes(no) : blockFor(userNo).includes(no));
+          const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo] ? members[userNo].includes(no) : neighborsFor(userNo).includes(no));
           const seat = document.createElement("div");
           seat.className = `seat ${absent ? "absent" : selectable ? "can-select" : ""}`;
           if (group) seat.style.background = COLORS[groupIndex % COLORS.length];
@@ -156,10 +180,14 @@
           seat.innerHTML = `<b>${no}</b><small>${status}</small>`;
           if (group) {
             const progress = state.progress[groupKey(group)] || 1;
-            const stageIndex = Math.floor((progress - 1) / state.maxCount);
-            const count = (progress - 1) % state.maxCount + 1;
+            let remaining = progress;
+            let stageIndex = 0;
+            while (stageIndex < STAGES.length && remaining > state.maxCounts[STAGES[stageIndex]]) {
+              remaining -= state.maxCounts[STAGES[stageIndex]];
+              stageIndex += 1;
+            }
             const finished = stageIndex >= STAGES.length;
-            seat.insertAdjacentHTML("beforeend", `<div class="progress"><b>${finished ? "！提出！" : STAGES[stageIndex]}</b><br>${finished ? "完了" : `${count} / ${state.maxCount}`}${userNo && userNo !== 99 && no !== userNo && !finished ? "<button>完了</button>" : ""}</div>`);
+            seat.insertAdjacentHTML("beforeend", `<div class="progress"><b>${finished ? "！提出！" : STAGES[stageIndex]}</b><br>${finished ? "完了" : `${remaining} / ${state.maxCounts[STAGES[stageIndex]]}`}${userNo && userNo !== 99 && no !== userNo && !finished ? "<button>完了</button>" : ""}</div>`);
             seat.querySelector("button")?.addEventListener("click", (event) => { event.stopPropagation(); advance(no); });
           }
           if (selectable) seat.addEventListener("click", () => choose(no));
@@ -173,8 +201,9 @@
     function drawAdmin() {
       const admin = document.querySelector("#admin");
       if (userNo !== 99) { admin.innerHTML = ""; return; }
-      admin.innerHTML = `<div class="settings"><label>各チェックの最大回数 <input id="maxCount" type="number" min="1" value="${state.maxCount}"></label> <button id="saveMax">保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div></div>`;
-      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCount = Math.max(1, Number(document.querySelector("#maxCount").value) || 1); save(next); });
+      admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="false">設定を表示</button></div><div class="settings-body" hidden><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="1" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div></div></div>`;
+      document.querySelector("#toggleSettings").addEventListener("click", () => { const body = admin.querySelector(".settings-body"); const open = body.hidden; body.hidden = !open; document.querySelector("#toggleSettings").textContent = open ? "設定を隠す" : "設定を表示"; document.querySelector("#toggleSettings").setAttribute("aria-expanded", String(open)); });
+      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 1)])); save(next); });
       admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
     }
 
