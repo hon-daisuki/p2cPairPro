@@ -35,6 +35,7 @@
     .seat.absent > b { background:#7b8580; color:#fff; }
     .seat.consulting { background:#fff1a6; }
     .seat.consulting > b { background:#f2c91c; }
+    .consultation-status { color:#b42318; font-size:18px; font-weight:bold; line-height:1.35; }
     .seat.can-select { cursor:pointer; box-shadow:inset 0 0 0 2px #238d5e; }
     .progress { margin-top:auto; padding-top:5px; border-top:1px solid #678; font-size:12px; }
     .progress b { font-size:13px; }
@@ -247,7 +248,7 @@
           if (group) seat.style.background = COLORS[groupIndex % COLORS.length];
           if (consultationNo) seat.style.background = "";
           const status = absent ? "欠席" : consultationNo ? `相談No.${consultationNo}` : group ? `${group.join("・")}番` : state.selections[no] ? `${state.selections[no]}番を選択中` : "未成立";
-          seat.innerHTML = `<b>${no}</b><small>${status}</small>`;
+          seat.innerHTML = `<b>${no}</b><small class="${consultationNo ? "consultation-status" : ""}">${status}</small>`;
           if (group && !consultationNo) {
             const progress = state.progress[no] || 1;
             let remaining = progress;
