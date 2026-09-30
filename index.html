@@ -33,10 +33,14 @@
     .seat small { color:#52695d; }
     .seat.absent { background:#aeb6b1; }
     .seat.absent > b { background:#7b8580; color:#fff; }
+    .seat.consulting { background:#fff1a6; }
+    .seat.consulting > b { background:#f2c91c; }
     .seat.can-select { cursor:pointer; box-shadow:inset 0 0 0 2px #238d5e; }
     .progress { margin-top:auto; padding-top:5px; border-top:1px solid #678; font-size:12px; }
     .progress b { font-size:13px; }
     .progress button { float:right; padding:4px 7px; }
+    .seat-actions { margin-top:auto; }
+    .seat-actions button { padding:5px 9px; }
     .note { max-width:1350px; margin:10px auto; padding:0 14px; color:#52695d; font-size:12px; }
     .modal { position:fixed; z-index:10; inset:0; display:grid; place-items:center; padding:18px; background:rgba(15, 35, 26, .52); }
     .modal[hidden] { display:none; }
@@ -55,7 +59,7 @@
   </header>
   <div class="bar"><b id="message">出席番号でログインしてください</b><span>操作は数秒以内に全員へ反映されます</span></div>
   <section id="admin"></section>
-  <p class="note">2人組は左右の席を選びます。3人組では、左右のペアができたあとに、3人目が前後の席から参加できます。</p>
+  <p class="note">2人組は左右の席を選びます。3人組では、左右のペアができたあとに、3人目が前後の席から参加できます。相談中の席は黄色で表示されます。</p>
   <main><div class="board" id="board"></div></main>
   <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="modal-card">
@@ -80,6 +84,7 @@
     let state;
     let userNo = null;
     let adminSettingsOpen = false;
+    let actionPending = false;
 
     const blockFor = (no) => BLOCKS.find((block) => block.includes(no)) || [];
     const neighborsFor = (no) => {
@@ -131,7 +136,10 @@
     function normalizeState(rawState) {
       const legacyCount = Math.max(1, Number(rawState.maxCount) || 3);
       const maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(rawState.maxCounts?.[stage]) || legacyCount)]));
-      return { ...rawState, absent: rawState.absent || [], selections: rawState.selections || {}, progress: rawState.progress || {}, maxCounts };
+      const consultations = Array.isArray(rawState.consultations)
+        ? [...new Set(rawState.consultations.map(Number).filter((no) => Number.isInteger(no) && no >= 1 && no <= 40))]
+        : [];
+      return { ...rawState, absent: rawState.absent || [], selections: rawState.selections || {}, progress: rawState.progress || {}, consultations, maxCounts };
     }
 
     async function load() {
@@ -147,6 +155,9 @@
     }
 
     async function save(nextState) {
+      if (actionPending) return;
+      actionPending = true;
+      draw();
       try {
         const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState) });
         const response = await fetch(`${API_URL}?${params.toString()}`, { cache: "no-store" });
@@ -156,6 +167,9 @@
         draw();
       } catch (_) {
         message("保存できませんでした。通信を確認してください。");
+      } finally {
+        actionPending = false;
+        draw();
       }
     }
 
@@ -186,9 +200,25 @@
 
     function advance(no) {
       const group = memberMap()[no];
-      if (!group || no === userNo) return;
+      if (!group || no === userNo || state.consultations.includes(no)) return;
       const next = structuredClone(state);
       next.progress[no] = (next.progress[no] || 1) + 1;
+      save(next);
+    }
+
+    function startConsultation(no) {
+      if (no !== userNo || state.consultations.includes(no)) return;
+      const next = structuredClone(state);
+      next.consultations = [...next.consultations, no];
+      message(`${no}番の相談を登録しました。`);
+      save(next);
+    }
+
+    function resolveConsultation(no) {
+      if (no !== userNo || !state.consultations.includes(no)) return;
+      const next = structuredClone(state);
+      next.consultations = next.consultations.filter((seatNo) => seatNo !== no);
+      message(`${no}番の相談を解決しました。`);
       save(next);
     }
 
@@ -206,17 +236,19 @@
         block.forEach((no) => {
           const absent = state.absent.includes(no);
           const group = members[no];
+          const consultationNo = state.consultations.indexOf(no) + 1;
           const groupIndex = group ? pairedGroups.findIndex((item) => item.includes(no)) : -1;
           const targetHasPair = state.selections[no] && state.selections[state.selections[no]] === no;
           const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo]
             ? members[userNo].includes(no)
             : neighborsFor(userNo).includes(no) || (verticalNeighborsFor(userNo).includes(no) && targetHasPair));
           const seat = document.createElement("div");
-          seat.className = `seat ${absent ? "absent" : selectable ? "can-select" : ""}`;
+          seat.className = `seat ${absent ? "absent" : consultationNo ? "consulting" : selectable ? "can-select" : ""}`;
           if (group) seat.style.background = COLORS[groupIndex % COLORS.length];
-          const status = absent ? "欠席" : group ? `${group.join("・")}番` : state.selections[no] ? `${state.selections[no]}番を選択中` : "未成立";
+          if (consultationNo) seat.style.background = "";
+          const status = absent ? "欠席" : consultationNo ? `相談No.${consultationNo}` : group ? `${group.join("・")}番` : state.selections[no] ? `${state.selections[no]}番を選択中` : "未成立";
           seat.innerHTML = `<b>${no}</b><small>${status}</small>`;
-          if (group) {
+          if (group && !consultationNo) {
             const progress = state.progress[no] || 1;
             let remaining = progress;
             let stageIndex = 0;
@@ -225,9 +257,18 @@
               stageIndex += 1;
             }
             const finished = stageIndex >= STAGES.length;
-            seat.insertAdjacentHTML("beforeend", `<div class="progress"><b>${finished ? "！提出！" : STAGES[stageIndex]}</b><br>${finished ? "完了" : `${remaining} / ${state.maxCounts[STAGES[stageIndex]]}`}${userNo && userNo !== 99 && no !== userNo && !finished ? "<button>完了</button>" : ""}</div>`);
-            seat.querySelector("button")?.addEventListener("click", (event) => { event.stopPropagation(); advance(no); });
+            const completeButton = userNo && userNo !== 99 && no !== userNo && !finished
+              ? `<button data-action="complete"${actionPending ? " disabled" : ""}>完了</button>` : "";
+            seat.insertAdjacentHTML("beforeend", `<div class="progress"><b>${finished ? "！提出！" : STAGES[stageIndex]}</b><br>${finished ? "完了" : `${remaining} / ${state.maxCounts[STAGES[stageIndex]]}`}${completeButton}</div>`);
           }
+          if (userNo && userNo !== 99 && no === userNo && !absent) {
+            const action = consultationNo ? "resolve" : "consult";
+            const label = consultationNo ? "解決" : "相談";
+            seat.insertAdjacentHTML("beforeend", `<div class="seat-actions"><button data-action="${action}"${actionPending ? " disabled" : ""}>${label}</button></div>`);
+          }
+          seat.querySelector('[data-action="complete"]')?.addEventListener("click", (event) => { event.stopPropagation(); advance(no); });
+          seat.querySelector('[data-action="consult"]')?.addEventListener("click", (event) => { event.stopPropagation(); startConsultation(no); });
+          seat.querySelector('[data-action="resolve"]')?.addEventListener("click", (event) => { event.stopPropagation(); resolveConsultation(no); });
           if (selectable) seat.addEventListener("click", () => choose(no));
           blockElement.appendChild(seat);
         });
@@ -243,7 +284,7 @@
       document.querySelector("#toggleSettings").addEventListener("click", () => { adminSettingsOpen = !adminSettingsOpen; drawAdmin(); });
       document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 1)])); save(next); });
       admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
-      document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・回数設定を初期化します。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, 3])); save(next); });
+      document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・相談・回数設定を初期化します。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.consultations = []; next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, 3])); save(next); });
     }
 
     document.querySelector("#openLogin").addEventListener("click", () => { document.querySelector("#loginModal").hidden = false; document.querySelector("#attendanceNo").focus(); });
