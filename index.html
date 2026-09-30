@@ -86,6 +86,7 @@
     let userNo = null;
     let adminSettingsOpen = false;
     let actionPending = false;
+    let stateEpoch = 0;
 
     const blockFor = (no) => BLOCKS.find((block) => block.includes(no)) || [];
     const neighborsFor = (no) => {
@@ -148,10 +149,12 @@
     }
 
     async function load() {
-      if (!configured()) return;
+      if (!configured() || actionPending) return;
+      const requestEpoch = stateEpoch;
       try {
         const response = await fetch(`${API_URL}?action=get&t=${Date.now()}`, { cache: "no-store" });
         const data = await response.json();
+        if (actionPending || requestEpoch !== stateEpoch) return;
         state = normalizeState(data.state);
         draw();
       } catch (_) {
@@ -162,6 +165,7 @@
     async function save(nextState) {
       if (actionPending) return;
       actionPending = true;
+      stateEpoch += 1;
       draw();
       try {
         let response;
