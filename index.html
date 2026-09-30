@@ -135,8 +135,12 @@
     }
 
     function normalizeState(rawState) {
-      const legacyCount = Math.max(1, Number(rawState.maxCount) || 3);
-      const maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(rawState.maxCounts?.[stage]) || legacyCount)]));
+      const savedLegacyCount = Number(rawState.maxCount);
+      const legacyCount = Number.isFinite(savedLegacyCount) ? Math.max(0, savedLegacyCount) : 3;
+      const maxCounts = Object.fromEntries(STAGES.map((stage) => {
+        const savedCount = Number(rawState.maxCounts?.[stage]);
+        return [stage, Number.isFinite(savedCount) ? Math.max(0, savedCount) : legacyCount];
+      }));
       const consultations = Array.isArray(rawState.consultations)
         ? [...new Set(rawState.consultations.map(Number).filter((no) => Number.isInteger(no) && no >= 1 && no <= 40))]
         : [];
@@ -253,8 +257,8 @@
             const progress = state.progress[no] || 1;
             let remaining = progress;
             let stageIndex = 0;
-            while (stageIndex < STAGES.length && remaining > state.maxCounts[STAGES[stageIndex]]) {
-              remaining -= state.maxCounts[STAGES[stageIndex]];
+            while (stageIndex < STAGES.length && (state.maxCounts[STAGES[stageIndex]] === 0 || remaining > state.maxCounts[STAGES[stageIndex]])) {
+              if (state.maxCounts[STAGES[stageIndex]] > 0) remaining -= state.maxCounts[STAGES[stageIndex]];
               stageIndex += 1;
             }
             const finished = stageIndex >= STAGES.length;
@@ -281,11 +285,11 @@
     function drawAdmin() {
       const admin = document.querySelector("#admin");
       if (userNo !== 99) { admin.innerHTML = ""; return; }
-      admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="${adminSettingsOpen}">${adminSettingsOpen ? "設定を隠す" : "設定を表示"}</button></div><div class="settings-body" ${adminSettingsOpen ? "" : "hidden"}><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="1" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div><p><button id="resetState" class="danger">初期化</button></p></div></div>`;
+      admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="${adminSettingsOpen}">${adminSettingsOpen ? "設定を隠す" : "設定を表示"}</button></div><div class="settings-body" ${adminSettingsOpen ? "" : "hidden"}><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="0" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div><p><button id="resetState" class="danger">初期化</button></p></div></div>`;
       document.querySelector("#toggleSettings").addEventListener("click", () => { adminSettingsOpen = !adminSettingsOpen; drawAdmin(); });
-      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(1, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 1)])); save(next); });
+      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(0, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 0)])); save(next); });
       admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
-      document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・相談・回数設定を初期化します。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.consultations = []; next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, 3])); save(next); });
+      document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・相談を初期化します。最大回数の設定は残ります。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.consultations = []; save(next); });
     }
 
     document.querySelector("#openLogin").addEventListener("click", () => { document.querySelector("#loginModal").hidden = false; document.querySelector("#attendanceNo").focus(); });
