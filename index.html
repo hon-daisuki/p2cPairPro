@@ -164,14 +164,24 @@
       actionPending = true;
       draw();
       try {
-        const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState) });
-        const response = await fetch(`${API_URL}?${params.toString()}`, { cache: "no-store" });
-        const data = await response.json();
+        let response;
+        let data;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState), t:String(Date.now()) });
+            response = await fetch(`${API_URL}?${params.toString()}`, { cache: "no-store" });
+            data = await response.json();
+            break;
+          } catch (error) {
+            if (attempt === 1) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 700));
+          }
+        }
         state = normalizeState(data.state);
         if (!response.ok || data.error) message("他の操作が先に反映されました。画面を確認して、もう一度操作してください。");
         draw();
       } catch (_) {
-        message("保存できませんでした。通信を確認してください。");
+        message("保存できませんでした。少し待ってから、もう一度操作してください。");
       } finally {
         actionPending = false;
         draw();
