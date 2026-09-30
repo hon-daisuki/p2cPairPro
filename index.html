@@ -87,6 +87,7 @@
     let adminSettingsOpen = false;
     let actionPending = false;
     let stateEpoch = 0;
+    let adminEditing = false;
 
     const blockFor = (no) => BLOCKS.find((block) => block.includes(no)) || [];
     const neighborsFor = (no) => {
@@ -149,7 +150,7 @@
     }
 
     async function load() {
-      if (!configured() || actionPending) return;
+      if (!configured() || actionPending || (userNo === 99 && adminSettingsOpen && adminEditing)) return;
       const requestEpoch = stateEpoch;
       try {
         const response = await fetch(`${API_URL}?action=get&t=${Date.now()}`, { cache: "no-store" });
@@ -198,6 +199,7 @@
       if (!Number.isInteger(no) || (!(no >= 1 && no <= 40) && no !== 99)) return message("1〜40、管理者は99を入力してください");
       if (no !== 99 && state.absent.includes(no)) return message("この番号は欠席に設定されているためログインできません");
       userNo = no;
+      adminEditing = false;
       document.querySelector("#loginModal").hidden = true;
       message(no === 99 ? "管理者としてログインしました" : `${no}番でログインしました`);
       draw();
@@ -300,8 +302,9 @@
       const admin = document.querySelector("#admin");
       if (userNo !== 99) { admin.innerHTML = ""; return; }
       admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="${adminSettingsOpen}">${adminSettingsOpen ? "設定を隠す" : "設定を表示"}</button></div><div class="settings-body" ${adminSettingsOpen ? "" : "hidden"}><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="0" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div><p><button id="resetState" class="danger">初期化</button></p></div></div>`;
-      document.querySelector("#toggleSettings").addEventListener("click", () => { adminSettingsOpen = !adminSettingsOpen; drawAdmin(); });
-      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(0, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 0)])); save(next); });
+      document.querySelector("#toggleSettings").addEventListener("click", () => { adminSettingsOpen = !adminSettingsOpen; if (!adminSettingsOpen) adminEditing = false; drawAdmin(); });
+      admin.querySelectorAll("[data-stage]").forEach((input) => input.addEventListener("input", () => { adminEditing = true; }));
+      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(0, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 0)])); adminEditing = false; save(next); });
       admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
       document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・相談を初期化します。最大回数の設定は残ります。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.consultations = []; save(next); });
     }
