@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja" xmlns:th="https://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2C 提出状況</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <header>
+    <div><h1>P2C 提出状況</h1><p>自分の座席から、現在作成中の課題を提出済みにします。</p></div>
+    <form th:if="${attendanceNo != null}" th:action="@{/logout}" method="post"><button class="secondary">ログアウト</button></form>
+  </header>
+
+  <section class="bar">
+    <b th:if="${attendanceNo == null}">出席番号でログインしてください</b>
+    <b th:if="${attendanceNo != null and attendanceNo != 99}" th:text="|${attendanceNo}番でログイン中|">ログイン中</b>
+    <b th:if="${attendanceNo == 99}">管理者としてログイン中</b>
+    <span>画面は5秒ごとに更新されます</span>
+  </section>
+
+  <p class="flash error" th:if="${error}" th:text="${error}"></p>
+  <p class="flash success" th:if="${message}" th:text="${message}"></p>
+
+  <section class="login" th:if="${attendanceNo == null}">
+    <h2>ログイン</h2>
+    <form th:action="@{/login}" method="post">
+      <label>出席番号 <input name="attendanceNo" inputmode="numeric" min="1" max="99" required></label>
+      <button>ログイン</button>
+    </form>
+  </section>
+
+  <section class="admin" th:if="${attendanceNo == 99}">
+    <h2>欠席者設定</h2>
+    <p>番号を選択すると、欠席・出席を切り替えます。</p>
+    <div class="number-buttons">
+      <form th:each="number : ${#numbers.sequence(1, 40)}" th:action="@{/admin/absence}" method="post">
+        <input type="hidden" name="targetNo" th:value="${number}">
+        <button th:text="${number}" th:classappend="${statuses.get(number).absent} ? 'off' : ''">1</button>
+      </form>
+    </div>
+  </section>
+
+  <main class="board">
+    <div class="block" th:each="block, blockStat : ${blocks}" th:classappend="${block.size() == 4} ? 'mid' : ''">
+      <article th:each="number : ${block}" th:with="seat=${statuses.get(number)}"
+          class="seat" th:classappend="${seat.colorClass} + (${attendanceNo == number} ? ' mine' : '')">
+        <h2 th:text="${number}">1</h2>
+        <p th:if="${seat.absent}" class="absent-label">欠席</p>
+        <div th:unless="${seat.absent}" class="status">
+          <p th:each="done : ${seat.completedTasks}" class="done" th:text="|【提出済】${done}|">【提出済】pair06-1</p>
+          <p class="current" th:text="${seat.currentTask == 'Free!' ? 'Free!' : '【作成中】' + seat.currentTask}">【作成中】pair06-1</p>
+        </div>
+        <form th:if="${attendanceNo == number and !seat.absent and seat.currentTask != 'Free!'}" th:action="@{/submit}" method="post">
+          <button class="submit" th:text="|${seat.currentTask} を提出|">提出</button>
+        </form>
+      </article>
+    </div>
+  </main>
+
+  <script th:if="${attendanceNo != null}">setTimeout(() => location.reload(), 5000);</script>
+</body>
+</html>

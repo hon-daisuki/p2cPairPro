@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: p2c-submission-status
+    runtime: docker
+    plan: free
+    rootDir: spring_submission_status
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeployTrigger: commit
