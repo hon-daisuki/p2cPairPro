@@ -34,6 +34,13 @@ public class SubmissionStatusService {
         submissionSteps.put(attendanceNo, Math.min(TASKS.size(), stepOf(attendanceNo) + 1));
     }
 
+    public synchronized void back(int attendanceNo) {
+        if (!canLogin(attendanceNo) || attendanceNo == 99) {
+            return;
+        }
+        submissionSteps.put(attendanceNo, Math.max(0, stepOf(attendanceNo) - 1));
+    }
+
     public synchronized void toggleAbsent(int attendanceNo) {
         if (absentNumbers.contains(attendanceNo)) {
             absentNumbers.remove(attendanceNo);

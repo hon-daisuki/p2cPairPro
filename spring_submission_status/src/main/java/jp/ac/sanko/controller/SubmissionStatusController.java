@@ -56,6 +56,18 @@ public class SubmissionStatusController {
         return "redirect:/";
     }
 
+    @PostMapping("/back")
+    public String back(HttpSession session, RedirectAttributes redirectAttributes) {
+        Integer attendanceNo = attendanceNo(session);
+        if (attendanceNo == null || attendanceNo == 99) {
+            redirectAttributes.addFlashAttribute("error", "提出状況を戻すには出席番号でログインしてください。");
+            return "redirect:/";
+        }
+        service.back(attendanceNo);
+        redirectAttributes.addFlashAttribute("message", "提出状況を1つ前に戻しました。");
+        return "redirect:/";
+    }
+
     @PostMapping("/admin/absence")
     public String toggleAbsence(HttpSession session,
             @RequestParam int targetNo, RedirectAttributes redirectAttributes) {

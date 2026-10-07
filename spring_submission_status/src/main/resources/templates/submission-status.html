@@ -51,9 +51,14 @@
           <p th:each="done : ${seat.completedTasks}" class="done" th:text="|【提出済】${done}|">【提出済】pair06-1</p>
           <p class="current" th:text="${seat.currentTask == 'Free!' ? 'Free!' : '【作成中】' + seat.currentTask}">【作成中】pair06-1</p>
         </div>
-        <form th:if="${attendanceNo == number and !seat.absent and seat.currentTask != 'Free!'}" th:action="@{/submit}" method="post">
-          <button class="submit" th:text="|${seat.currentTask} を提出|">提出</button>
-        </form>
+        <div class="seat-actions" th:if="${attendanceNo == number and !seat.absent}">
+          <form th:if="${seat.currentTask != 'Free!'}" th:action="@{/submit}" method="post">
+            <button class="submit">提出</button>
+          </form>
+          <form th:action="@{/back}" method="post">
+            <button class="secondary" th:disabled="${seat.completedTasks.isEmpty()}">戻る</button>
+          </form>
+        </div>
       </article>
     </div>
   </main>

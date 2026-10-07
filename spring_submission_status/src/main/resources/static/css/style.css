@@ -5,6 +5,7 @@ header,.bar { display:flex; align-items:center; justify-content:space-between; g
 header h1 { margin:0; font-size:24px; }
 header p { margin:5px 0 0; color:#52695d; font-size:13px; }
 button { border:0; border-radius:4px; padding:9px 12px; background:var(--green); color:#fff; font-weight:bold; cursor:pointer; }
+button:disabled { cursor:not-allowed; opacity:.45; }
 .secondary { background:#52695d; }
 .bar { background:#e7f2eb; font-size:13px; }
 .flash,.login,.admin { max-width:1260px; margin:14px auto; padding:13px 16px; border:1px solid var(--line); background:#fff; }
@@ -37,4 +38,8 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .status { margin-top:auto; border-top:1px solid rgba(60,80,70,.45); padding-top:7px; font-size:12px; line-height:1.5; }
 .status p { margin:0; }.status .done { text-decoration:line-through; }.status .current { font-size:14px; font-weight:bold; }.absent-label { margin:auto; font-weight:bold; }
 .submit { margin-top:8px; width:100%; background:#075f40; }
+.seat-actions { display:flex; gap:5px; margin-top:8px; }
+.seat-actions form { flex:1; }
+.seat-actions button { width:100%; padding:8px 4px; }
+.seat-actions .submit { margin-top:0; }
 @media (max-width:700px) { header,.bar { align-items:flex-start; flex-direction:column; } .board { margin-left:15px; } .login form { align-items:stretch; flex-direction:column; } }
