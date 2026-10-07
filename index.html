@@ -3,164 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>P2C 座席ペア</title>
+  <title>P2C 提出状況</title>
   <style>
-    :root { color-scheme: light; --ink:#16241e; --line:#cbd7cf; --green:#16734d; }
+    :root { color-scheme:light; --ink:#16241e; --line:#cbd7cf; --green:#16734d; --yellow:#ffe64e; }
     * { box-sizing:border-box; }
     body { margin:0; background:#f6faf7; color:var(--ink); font-family:"Yu Gothic", Meiryo, sans-serif; }
     header,.bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 5%; background:#fff; border-bottom:1px solid var(--line); }
     h1 { margin:0; font-size:22px; }
     .bar { background:#e7f2eb; font-size:13px; }
-    input { width:100px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
     button { border:0; border-radius:4px; background:var(--green); color:#fff; padding:8px 10px; font-weight:bold; cursor:pointer; }
     button:disabled { cursor:not-allowed; opacity:.55; }
     .settings { max-width:1350px; margin:12px auto; padding:14px; background:#fff; border:1px solid var(--line); }
-    .settings-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .settings-body[hidden] { display:none; }
-    .stage-settings { display:grid; grid-template-columns:repeat(5, minmax(120px, 1fr)); gap:10px; margin:12px 0; }
-    .stage-settings label { display:flex; flex-direction:column; gap:5px; font-size:13px; }
-    .stage-settings input { width:100%; }
-    .sheet-link { color:#075f40; font-weight:bold; }
-    .danger { background:#b42318; }
+    .settings p { margin:0 0 10px; font-size:13px; }
     .nums button { min-width:31px; margin:2px; background:#edf2ee; color:#234; }
     .nums .off { background:#7b8580; color:#fff; }
     main { overflow:auto; }
     .board { display:grid; grid-template-columns:max-content max-content max-content; gap:0 36px; width:max-content; min-width:1120px; margin:26px auto; }
     .block { display:grid; grid-template-columns:repeat(3,112px); }
     .block.mid { grid-template-columns:repeat(4,112px); }
-    .seat { display:flex; flex-direction:column; min-height:122px; gap:7px; padding:7px; text-align:center; border:1px solid #9aa59e; background:#fff; }
-    .seat > b { margin:-7px -7px 0; padding:6px; background:#ffe64e; font-size:19px; }
+    .seat { display:flex; flex-direction:column; min-height:142px; gap:7px; padding:7px; text-align:center; border:1px solid #9aa59e; background:#fff; }
+    .seat > b { margin:-7px -7px 0; padding:6px; background:var(--yellow); font-size:19px; }
     .seat small { color:#52695d; }
+    .seat.stage-0 { background:#ef5350; }
+    .seat.stage-1 { background:#ffe66d; }
+    .seat.stage-2 { background:#4d96e8; }
+    .seat.stage-3 { background:#63bd78; }
+    .seat.stage-0 small,.seat.stage-2 small,.seat.stage-3 small { color:#fff; }
+    .seat.stage-0 .seat-status,.seat.stage-2 .seat-status,.seat.stage-3 .seat-status { border-color:rgba(255,255,255,.65); }
+    .seat.stage-0 .seat-status strong,.seat.stage-2 .seat-status strong,.seat.stage-3 .seat-status strong { color:#fff; }
+    .seat.stage-0 .seat-status .done,.seat.stage-2 .seat-status .done,.seat.stage-3 .seat-status .done { color:#fff; }
     .seat.absent { background:#aeb6b1; }
     .seat.absent > b { background:#7b8580; color:#fff; }
-    .seat.consulting { background:#fff1a6; }
-    .seat.consulting > b { background:#f2c91c; }
-    .seat .consultation-status { color:#e60012; font-size:18px; font-weight:bold; line-height:1.35; }
-    .seat.can-select { cursor:pointer; box-shadow:inset 0 0 0 2px #238d5e; }
-    .progress { margin-top:auto; padding-top:5px; border-top:1px solid #678; font-size:12px; }
-    .progress b { font-size:13px; }
-    .progress button { float:right; padding:4px 7px; }
-    .seat-actions { margin-top:auto; }
-    .seat-actions button { padding:5px 9px; }
+    .seat.mine { box-shadow:inset 0 0 0 3px #238d5e; }
+    .seat-status { margin-top:auto; padding-top:6px; border-top:1px solid #a9b8af; font-size:13px; line-height:1.55; }
+    .seat-status strong { display:block; font-size:14px; color:#075f40; }
+    .seat-status .done { color:#52695d; text-decoration:line-through; }
+    .seat-actions { margin-top:3px; }
     .note { max-width:1350px; margin:10px auto; padding:0 14px; color:#52695d; font-size:12px; }
-    .modal { position:fixed; z-index:10; inset:0; display:grid; place-items:center; padding:18px; background:rgba(15, 35, 26, .52); }
+    .modal { position:fixed; z-index:10; inset:0; display:grid; place-items:center; padding:18px; background:rgba(15,35,26,.52); }
     .modal[hidden] { display:none; }
-    .modal-card { width:min(390px, 100%); padding:24px; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 12px 32px rgba(0,0,0,.22); }
+    .modal-card { width:min(390px,100%); padding:24px; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 12px 32px rgba(0,0,0,.22); }
     .modal-card h2 { margin:0 0 8px; font-size:20px; }
     .modal-card p { margin:0 0 16px; color:#52695d; font-size:13px; }
     .modal-row { display:flex; gap:8px; }
-    .modal-row input { flex:1; width:auto; }
-    @media (max-width:700px) { header,.bar { flex-direction:column; align-items:flex-start; } .board { margin-left:15px; } .stage-settings { grid-template-columns:repeat(2, minmax(120px, 1fr)); } }
+    .modal-row input { flex:1; width:auto; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
+    @media (max-width:700px) { header,.bar { flex-direction:column; align-items:flex-start; } .board { margin-left:15px; } }
   </style>
 </head>
 <body>
-  <header>
-    <h1>P2C 座席ペア・環境チェック</h1>
-    <button id="openLogin">ログイン</button>
-  </header>
+  <header><h1>P2C 提出状況</h1><button id="openLogin">ログイン</button></header>
   <div class="bar"><b id="message">出席番号でログインしてください</b><span>操作は数秒以内に全員へ反映されます</span></div>
   <section id="admin"></section>
-  <p class="note">2人組は左右の席を選びます。3人組では、左右のペアができたあとに、3人目が前後の席から参加できます。相談中の席は黄色で表示されます。</p>
+  <p class="note">自分の座席だけで提出状況を操作できます。提出した課題は「提出済」として全員の画面に表示されます。</p>
   <main><div class="board" id="board"></div></main>
-  <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-    <div class="modal-card">
-      <h2 id="loginTitle">ログイン</h2>
-      <p>出席番号を入力してください。</p>
-      <div class="modal-row"><input id="attendanceNo" inputmode="numeric" placeholder="出席番号" aria-label="出席番号"><button id="loginButton">ログイン</button></div>
-    </div>
-  </div>
+  <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle"><div class="modal-card"><h2 id="loginTitle">ログイン</h2><p>出席番号を入力してください。</p><div class="modal-row"><input id="attendanceNo" inputmode="numeric" placeholder="出席番号" aria-label="出席番号"><button id="loginButton">ログイン</button></div></div></div>
   <script>
-    // Deploy the Apps Script web app, then replace this value with its /exec URL.
     const API_URL = "https://script.google.com/macros/s/AKfycbzRcQOHhm-Ug4bRnabw4rWoxFSTp9Lt2lhy2iT4fXcYWYKTQVZGYSpCpTURQCR2u3xV5Q/exec";
     const BLOCKS = [[12,8,2],[36,17,23],[10,14,6],[5,37,7],[39,29,28,9],[1,20,13,16],[30,18,21,15],[11,40,3,22],[33,24,19],[4,26,27],[25,31,35],[32,38,34]];
-    const STAGES = ["環境チェック","検索チェック","登録チェック","更新チェック","削除チェック"];
-    const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1EzSqFql6xOKccvtagwZmxwDFHQRm8TENUUMvVNqrkhk/edit?usp=drivesdk";
-    const ROWS = [
-      [BLOCKS[0], BLOCKS[4], BLOCKS[8]],
-      [BLOCKS[1], BLOCKS[5], BLOCKS[9]],
-      [BLOCKS[2], BLOCKS[6], BLOCKS[10]],
-      [BLOCKS[3], BLOCKS[7], BLOCKS[11]]
-    ];
-    const COLORS = ["#f7cc57", "#61c3d7", "#f39a7a", "#9dc77e", "#b7a2e4", "#e792b7"];
+    const TASKS = ["pair06-1", "pair06-2", "portfolio04"];
     let state;
     let userNo = null;
-    let adminSettingsOpen = false;
     let actionPending = false;
     let stateEpoch = 0;
-    let adminEditing = false;
 
-    const blockFor = (no) => BLOCKS.find((block) => block.includes(no)) || [];
-    const neighborsFor = (no) => {
-      const row = ROWS.map((blocks) => blocks.flat()).find((seats) => seats.includes(no)) || [];
-      const index = row.indexOf(no);
-      return [row[index - 1], row[index + 1]].filter(Boolean);
-    };
-    const verticalNeighborsFor = (no) => {
-      const rowIndex = ROWS.findIndex((blocks) => blocks.flat().includes(no));
-      if (rowIndex < 0) return [];
-      const seatIndex = ROWS[rowIndex].flat().indexOf(no);
-      return [ROWS[rowIndex - 1], ROWS[rowIndex + 1]]
-        .filter(Boolean)
-        .map((blocks) => blocks.flat()[seatIndex])
-        .filter(Boolean);
-    };
-    const groupKey = (group) => [...group].sort((a, b) => a - b).join("-");
     const message = (text) => { document.querySelector("#message").textContent = text; };
     const configured = () => API_URL !== "PASTE_APPS_SCRIPT_WEB_APP_URL";
-
-    function groups() {
-      const result = [];
-      const used = new Set();
-      for (let no = 1; no <= 40; no += 1) {
-        const selected = state.selections[no];
-        if (selected && state.selections[selected] === no && !used.has(no) && !used.has(selected)) {
-          const third = Array.from({ length: 40 }, (_, index) => index + 1).find((seatNo) =>
-            !used.has(seatNo) &&
-            seatNo !== no &&
-            seatNo !== selected &&
-            !state.absent.includes(seatNo) &&
-            (state.selections[seatNo] === no || state.selections[seatNo] === selected) &&
-            (verticalNeighborsFor(seatNo).includes(no) || verticalNeighborsFor(seatNo).includes(selected))
-          );
-          const group = third ? [no, selected, third] : [no, selected];
-          group.forEach((seatNo) => used.add(seatNo));
-          result.push(group);
-        }
-      }
-      return result;
-    }
-
-    function memberMap() {
-      const members = {};
-      groups().forEach((group) => group.forEach((no) => { members[no] = group; }));
-      return members;
-    }
-
-    function normalizeState(rawState) {
-      const savedLegacyCount = Number(rawState.maxCount);
-      const legacyCount = Number.isFinite(savedLegacyCount) ? Math.max(0, savedLegacyCount) : 3;
-      const maxCounts = Object.fromEntries(STAGES.map((stage) => {
-        const savedCount = Number(rawState.maxCounts?.[stage]);
-        return [stage, Number.isFinite(savedCount) ? Math.max(0, savedCount) : legacyCount];
-      }));
-      const consultations = Array.isArray(rawState.consultations)
-        ? [...new Set(rawState.consultations.map(Number).filter((no) => Number.isInteger(no) && no >= 1 && no <= 40))]
-        : [];
-      return { ...rawState, absent: rawState.absent || [], selections: rawState.selections || {}, progress: rawState.progress || {}, consultations, maxCounts };
-    }
+    const progressFor = (no) => Math.max(0, Math.min(TASKS.length, Number(state.submissions[no]) || 0));
+    function normalizeState(rawState) { return { ...rawState, absent:Array.isArray(rawState.absent) ? rawState.absent : [], submissions:{ ...(rawState.submissions || {}) } }; }
 
     async function load() {
-      if (!configured() || actionPending || (userNo === 99 && adminSettingsOpen && adminEditing)) return;
+      if (!configured() || actionPending) return;
       const requestEpoch = stateEpoch;
       try {
-        const response = await fetch(`${API_URL}?action=get&t=${Date.now()}`, { cache: "no-store" });
+        const response = await fetch(`${API_URL}?action=get&t=${Date.now()}`, { cache:"no-store" });
         const data = await response.json();
         if (actionPending || requestEpoch !== stateEpoch) return;
         state = normalizeState(data.state);
         draw();
-      } catch (_) {
-        message("データに接続できません。先生に知らせてください。");
-      }
+      } catch (_) { message("データに接続できません。先生に知らせてください。"); }
     }
 
     async function save(nextState) {
@@ -169,28 +89,13 @@
       stateEpoch += 1;
       draw();
       try {
-        let response;
-        let data;
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          try {
-            const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState), t:String(Date.now()) });
-            response = await fetch(`${API_URL}?${params.toString()}`, { cache: "no-store" });
-            data = await response.json();
-            break;
-          } catch (error) {
-            if (attempt === 1) throw error;
-            await new Promise((resolve) => setTimeout(resolve, 700));
-          }
-        }
+        const params = new URLSearchParams({ action:"save", revision:String(state.revision), state:JSON.stringify(nextState), t:String(Date.now()) });
+        const response = await fetch(`${API_URL}?${params.toString()}`, { cache:"no-store" });
+        const data = await response.json();
         state = normalizeState(data.state);
         if (!response.ok || data.error) message("他の操作が先に反映されました。画面を確認して、もう一度操作してください。");
-        draw();
-      } catch (_) {
-        message("保存できませんでした。少し待ってから、もう一度操作してください。");
-      } finally {
-        actionPending = false;
-        draw();
-      }
+      } catch (_) { message("保存できませんでした。少し待ってから、もう一度操作してください。"); }
+      finally { actionPending = false; draw(); }
     }
 
     function login() {
@@ -199,54 +104,28 @@
       if (!Number.isInteger(no) || (!(no >= 1 && no <= 40) && no !== 99)) return message("1〜40、管理者は99を入力してください");
       if (no !== 99 && state.absent.includes(no)) return message("この番号は欠席に設定されているためログインできません");
       userNo = no;
-      adminEditing = false;
       document.querySelector("#loginModal").hidden = true;
-      message(no === 99 ? "管理者としてログインしました" : `${no}番でログインしました`);
+      message(no === 99 ? "管理者としてログインしました" : `${no}番でログインしました。自分の座席から提出を記録できます。`);
       draw();
     }
 
-    function choose(target) {
-      if (!userNo || userNo === 99 || target === userNo || state.absent.includes(target)) return;
-      const members = memberMap();
-      const targetHasPair = state.selections[target] && state.selections[state.selections[target]] === target;
-      const selectable = members[userNo]
-        ? members[userNo].includes(target)
-        : neighborsFor(userNo).includes(target) || (verticalNeighborsFor(userNo).includes(target) && targetHasPair);
-      if (!selectable) return message("左右の席、または成立済みペアの前後席を選んでください");
+    function submitCurrentTask(no) {
+      if (no !== userNo || userNo === 99 || state.absent.includes(no) || progressFor(no) >= TASKS.length) return;
+      const currentTask = TASKS[progressFor(no)];
       const next = structuredClone(state);
-      next.selections[userNo] = target;
-      message(`${target}番を選びました。相手もあなたを選ぶとペアが成立します。`);
+      next.submissions[no] = progressFor(no) + 1;
+      message(`${currentTask} を提出済みにしました。`);
       save(next);
     }
 
-    function advance(no) {
-      const group = memberMap()[no];
-      if (!group || no === userNo || state.consultations.includes(no)) return;
-      const next = structuredClone(state);
-      next.progress[no] = (next.progress[no] || 1) + 1;
-      save(next);
-    }
-
-    function startConsultation(no) {
-      if (no !== userNo || state.consultations.includes(no)) return;
-      const next = structuredClone(state);
-      next.consultations = [...next.consultations, no];
-      message(`${no}番の相談を登録しました。`);
-      save(next);
-    }
-
-    function resolveConsultation(no) {
-      if (no !== userNo || !state.consultations.includes(no)) return;
-      const next = structuredClone(state);
-      next.consultations = next.consultations.filter((seatNo) => seatNo !== no);
-      message(`${no}番の相談を解決しました。`);
-      save(next);
+    function taskStatus(no) {
+      const completed = progressFor(no);
+      const lines = TASKS.map((task, index) => index < completed ? `<span class="done">【提出済】${task}</span>` : index === completed ? `<strong>【作成中】${task}</strong>` : "");
+      return lines.filter(Boolean).join("<br>") || "<strong>Free!</strong>";
     }
 
     function draw() {
       if (!state) return;
-      const members = memberMap();
-      const pairedGroups = groups();
       const board = document.querySelector("#board");
       board.innerHTML = "";
       BLOCKS.forEach((block, index) => {
@@ -256,41 +135,13 @@
         blockElement.style.gridRow = (index % 4) + 1;
         block.forEach((no) => {
           const absent = state.absent.includes(no);
-          const group = members[no];
-          const consultationNo = state.consultations.indexOf(no) + 1;
-          const groupIndex = group ? pairedGroups.findIndex((item) => item.includes(no)) : -1;
-          const targetHasPair = state.selections[no] && state.selections[state.selections[no]] === no;
-          const selectable = userNo && userNo !== 99 && !absent && no !== userNo && (members[userNo]
-            ? members[userNo].includes(no)
-            : neighborsFor(userNo).includes(no) || (verticalNeighborsFor(userNo).includes(no) && targetHasPair));
+          const mine = userNo === no;
           const seat = document.createElement("div");
-          seat.className = `seat ${absent ? "absent" : consultationNo ? "consulting" : selectable ? "can-select" : ""}`;
-          if (group) seat.style.background = COLORS[groupIndex % COLORS.length];
-          if (consultationNo) seat.style.background = "";
-          const status = absent ? "欠席" : consultationNo ? `相談No.${consultationNo}` : group ? `${group.join("・")}番` : state.selections[no] ? `${state.selections[no]}番を選択中` : "未成立";
-          seat.innerHTML = `<b>${no}</b><small class="${consultationNo ? "consultation-status" : ""}">${status}</small>`;
-          if (group && !consultationNo) {
-            const progress = state.progress[no] || 1;
-            let remaining = progress;
-            let stageIndex = 0;
-            while (stageIndex < STAGES.length && (state.maxCounts[STAGES[stageIndex]] === 0 || remaining > state.maxCounts[STAGES[stageIndex]])) {
-              if (state.maxCounts[STAGES[stageIndex]] > 0) remaining -= state.maxCounts[STAGES[stageIndex]];
-              stageIndex += 1;
-            }
-            const finished = stageIndex >= STAGES.length;
-            const completeButton = userNo && userNo !== 99 && no !== userNo && !finished
-              ? `<button data-action="complete"${actionPending ? " disabled" : ""}>完了</button>` : "";
-            seat.insertAdjacentHTML("beforeend", `<div class="progress"><b>${finished ? "！提出！" : STAGES[stageIndex]}</b><br>${finished ? "完了" : `${remaining} / ${state.maxCounts[STAGES[stageIndex]]}`}${completeButton}</div>`);
-          }
-          if (userNo && userNo !== 99 && no === userNo && !absent) {
-            const action = consultationNo ? "resolve" : "consult";
-            const label = consultationNo ? "解決" : "相談";
-            seat.insertAdjacentHTML("beforeend", `<div class="seat-actions"><button data-action="${action}"${actionPending ? " disabled" : ""}>${label}</button></div>`);
-          }
-          seat.querySelector('[data-action="complete"]')?.addEventListener("click", (event) => { event.stopPropagation(); advance(no); });
-          seat.querySelector('[data-action="consult"]')?.addEventListener("click", (event) => { event.stopPropagation(); startConsultation(no); });
-          seat.querySelector('[data-action="resolve"]')?.addEventListener("click", (event) => { event.stopPropagation(); resolveConsultation(no); });
-          if (selectable) seat.addEventListener("click", () => choose(no));
+          seat.className = `seat ${absent ? "absent" : `stage-${progressFor(no)}`} ${mine ? "mine" : ""}`;
+          seat.innerHTML = `<b>${no}</b><small>${absent ? "欠席" : "提出状況"}</small>`;
+          if (!absent) seat.insertAdjacentHTML("beforeend", `<div class="seat-status">${taskStatus(no)}</div>`);
+          if (mine && !absent && progressFor(no) < TASKS.length) seat.insertAdjacentHTML("beforeend", `<div class="seat-actions"><button data-action="submit"${actionPending ? " disabled" : ""}>${TASKS[progressFor(no)]} を提出</button></div>`);
+          seat.querySelector('[data-action="submit"]')?.addEventListener("click", () => submitCurrentTask(no));
           blockElement.appendChild(seat);
         });
         board.appendChild(blockElement);
@@ -301,12 +152,13 @@
     function drawAdmin() {
       const admin = document.querySelector("#admin");
       if (userNo !== 99) { admin.innerHTML = ""; return; }
-      admin.innerHTML = `<div class="settings"><div class="settings-head"><b>管理者設定</b><button id="toggleSettings" aria-expanded="${adminSettingsOpen}">${adminSettingsOpen ? "設定を隠す" : "設定を表示"}</button></div><div class="settings-body" ${adminSettingsOpen ? "" : "hidden"}><p><a class="sheet-link" href="${SPREADSHEET_URL}" target="_blank" rel="noopener">進捗スプレッドシートを開く</a></p><p>各チェックの最大回数</p><div class="stage-settings">${STAGES.map((stage) => `<label>${stage}<input data-stage="${stage}" type="number" min="0" value="${state.maxCounts[stage]}"></label>`).join("")}</div><button id="saveMax">回数を保存</button><p>欠席者（番号をクリックして切り替え）</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div><p><button id="resetState" class="danger">初期化</button></p></div></div>`;
-      document.querySelector("#toggleSettings").addEventListener("click", () => { adminSettingsOpen = !adminSettingsOpen; if (!adminSettingsOpen) adminEditing = false; drawAdmin(); });
-      admin.querySelectorAll("[data-stage]").forEach((input) => input.addEventListener("input", () => { adminEditing = true; }));
-      document.querySelector("#saveMax").addEventListener("click", () => { const next = structuredClone(state); next.maxCounts = Object.fromEntries(STAGES.map((stage) => [stage, Math.max(0, Number(admin.querySelector(`[data-stage="${stage}"]`).value) || 0)])); adminEditing = false; save(next); });
-      admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => { const no = Number(button.dataset.no); const next = structuredClone(state); next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no]; save(next); }));
-      document.querySelector("#resetState").addEventListener("click", () => { if (!confirm("欠席・ペア・進捗・相談を初期化します。最大回数の設定は残ります。よろしいですか？")) return; const next = structuredClone(state); next.absent = []; next.selections = {}; next.progress = {}; next.consultations = []; save(next); });
+      admin.innerHTML = `<div class="settings"><p><b>欠席者設定</b>：番号をクリックすると、欠席・出席を切り替えます。</p><div class="nums">${Array.from({ length:40 }, (_, index) => `<button class="${state.absent.includes(index + 1) ? "off" : ""}" data-no="${index + 1}">${index + 1}</button>`).join("")}</div></div>`;
+      admin.querySelectorAll("[data-no]").forEach((button) => button.addEventListener("click", () => {
+        const no = Number(button.dataset.no);
+        const next = structuredClone(state);
+        next.absent = next.absent.includes(no) ? next.absent.filter((item) => item !== no) : [...next.absent, no];
+        save(next);
+      }));
     }
 
     document.querySelector("#openLogin").addEventListener("click", () => { document.querySelector("#loginModal").hidden = false; document.querySelector("#attendanceNo").focus(); });
