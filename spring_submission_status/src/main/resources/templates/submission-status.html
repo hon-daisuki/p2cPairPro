@@ -8,7 +8,7 @@
 </head>
 <body>
   <header>
-    <div><h1>P2C 提出状況</h1><p>自分の座席から、現在作成中の課題を提出済みにします。</p></div>
+    <div><h1>P2C 提出状況</h1><p>自分の座席から、現在の課題を完了にします。</p></div>
     <form th:if="${attendanceNo != null}" th:action="@{/logout}" method="post"><button class="secondary">ログアウト</button></form>
   </header>
 
@@ -53,7 +53,7 @@
         </div>
         <div class="seat-actions" th:if="${attendanceNo == number and !seat.absent}">
           <form th:if="${seat.currentTask != 'Free!'}" th:action="@{/submit}" method="post">
-            <button class="submit">提出</button>
+            <button class="submit" th:text="${seat.currentTask == '環境構築・DB'} ? '作成' : '提出'">提出</button>
           </form>
           <form th:action="@{/back}" method="post">
             <button class="secondary" th:disabled="${seat.completedTasks.isEmpty()}">戻る</button>

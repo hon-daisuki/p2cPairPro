@@ -20,17 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class SubmissionStatusService {
     private static final Logger logger = LoggerFactory.getLogger(SubmissionStatusService.class);
-    private static final List<String> TASKS = List.of("pair06-1", "pair06-2", "portfolio04");
-    private static final Map<Integer, Integer> DEFAULT_STEPS = Map.ofEntries(
-        Map.entry(1, 2), Map.entry(2, 2), Map.entry(3, 3), Map.entry(4, 3), Map.entry(5, 3),
-        Map.entry(6, 3), Map.entry(7, 3), Map.entry(8, 2), Map.entry(9, 3), Map.entry(10, 3),
-        Map.entry(11, 2), Map.entry(12, 3), Map.entry(13, 2), Map.entry(14, 3), Map.entry(15, 3),
-        Map.entry(16, 3), Map.entry(17, 3), Map.entry(18, 0), Map.entry(19, 3), Map.entry(20, 2),
-        Map.entry(21, 2), Map.entry(22, 3), Map.entry(23, 3), Map.entry(24, 3), Map.entry(25, 3),
-        Map.entry(26, 0), Map.entry(27, 2), Map.entry(28, 3), Map.entry(29, 3), Map.entry(30, 1),
-        Map.entry(31, 3), Map.entry(32, 2), Map.entry(33, 3), Map.entry(34, 3), Map.entry(35, 3),
-        Map.entry(36, 2), Map.entry(37, 3), Map.entry(38, 3), Map.entry(39, 2), Map.entry(40, 3)
-    );
+    private static final List<String> TASKS = List.of("環境構築・DB", "reference", "リアぺ");
     private final Map<Integer, Integer> submissionSteps = new HashMap<>();
     private final Set<Integer> absentNumbers = new HashSet<>();
     private final RestClient restClient;
@@ -45,7 +35,9 @@ public class SubmissionStatusService {
     public SubmissionStatusService(RestClient.Builder restClientBuilder, ObjectMapper objectMapper) {
         this.restClient = restClientBuilder.build();
         this.objectMapper = objectMapper;
-        this.submissionSteps.putAll(DEFAULT_STEPS);
+        for (int number = 1; number <= 40; number++) {
+            this.submissionSteps.put(number, 0);
+        }
     }
 
     @PostConstruct
