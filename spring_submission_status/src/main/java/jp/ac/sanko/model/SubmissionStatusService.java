@@ -20,7 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class SubmissionStatusService {
     private static final Logger logger = LoggerFactory.getLogger(SubmissionStatusService.class);
-    private static final List<String> TASKS = List.of("環境構築・DB", "reference", "リアぺ");
+    private static final List<String> TASKS = List.of(
+        "作業①", "作業②", "作業③", "作業④", "作業⑤", "作業⑥",
+        "作業⑦", "作業⑧", "作業⑨", "作業⑩", "作業⑪",
+        "動作確認", "提出", "リアぺ"
+    );
     private final Map<Integer, Integer> submissionSteps = new HashMap<>();
     private final Set<Integer> absentNumbers = new HashSet<>();
     private final RestClient restClient;
@@ -108,7 +112,7 @@ public class SubmissionStatusService {
         int step = stepOf(attendanceNo);
         List<String> completed = new ArrayList<>(TASKS.subList(0, step));
         if (step == TASKS.size()) {
-            return new SeatStatus(false, completed, "Free!", "stage-free");
+            return new SeatStatus(false, completed, "free!", "stage-free");
         }
         return new SeatStatus(false, completed, TASKS.get(step), "stage-" + step);
     }
