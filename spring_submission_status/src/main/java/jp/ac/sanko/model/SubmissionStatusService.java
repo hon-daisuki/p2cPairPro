@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class SubmissionStatusService {
     private static final Logger logger = LoggerFactory.getLogger(SubmissionStatusService.class);
     private static final List<String> TASKS = List.of(
-        "SQL文提出", "リアぺ"
+        "portfolio05", "Lesson04_05", "Lesson04_06", "Lesson04_07", "リアぺ"
     );
     private final Map<Integer, Integer> submissionSteps = new HashMap<>();
     private final Set<Integer> absentNumbers = new HashSet<>();

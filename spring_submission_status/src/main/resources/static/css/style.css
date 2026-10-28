@@ -33,10 +33,13 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .seat { display:flex; flex-direction:column; min-height:145px; padding:7px; border:1px solid #9aa59e; text-align:center; }
 .seat h2 { margin:-7px -7px 8px; padding:6px; background:#ffe64e; font-size:19px; }
 .seat.stage-0 { background:#ef5350; }
-.seat.stage-1 { background:#ec407a; }
+.seat.stage-1 { background:#fdd835; }
+.seat.stage-2 { background:#42a5f5; }
+.seat.stage-3 { background:#7e57c2; }
+.seat.stage-4 { background:#ec407a; }
 .seat.stage-free { background:#63bd78; }
 .seat.absent { background:#aeb6b1; }
-.seat.stage-0,.seat.stage-1,.seat.stage-free { color:#fff; }
+.seat.stage-0,.seat.stage-2,.seat.stage-3,.seat.stage-4,.seat.stage-free { color:#fff; }
 .seat.absent h2 { background:#7b8580; color:#fff; }
 .seat.mine { box-shadow:inset 0 0 0 3px #075f40; }
 .status { margin-top:auto; border-top:1px solid rgba(60,80,70,.45); padding-top:7px; font-size:12px; line-height:1.5; }
