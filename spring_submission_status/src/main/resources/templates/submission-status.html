@@ -31,6 +31,13 @@
   </section>
 
   <section class="admin" th:if="${attendanceNo == 99}">
+    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+      <form th:action="@{/admin/backup}" method="get"><button>保存</button></form>
+      <form id="restore-form" th:action="@{/admin/restore}" method="post" enctype="multipart/form-data">
+        <input id="backup-file" type="file" name="backup" accept=".json,application/json" hidden required>
+        <button id="restore-button" type="button">反映</button>
+      </form>
+    </div>
     <h2>欠席者設定</h2>
     <p>番号を選択すると、欠席・出席を切り替えます。</p>
     <div class="number-buttons">
@@ -62,6 +69,25 @@
     </div>
   </main>
 
-  <script th:if="${attendanceNo != null}">setTimeout(() => location.reload(), 5000);</script>
+  <script th:if="${attendanceNo != null}">
+    let selectingBackup = false;
+    const backupInput = document.getElementById('backup-file');
+    if (backupInput) {
+      document.getElementById('restore-button').addEventListener('click', () => {
+        selectingBackup = true;
+        backupInput.click();
+      });
+      backupInput.addEventListener('cancel', () => { selectingBackup = false; });
+      backupInput.addEventListener('change', () => {
+        if (backupInput.files.length) {
+          document.getElementById('restore-button').disabled = true;
+          document.getElementById('restore-form').requestSubmit();
+        } else {
+          selectingBackup = false;
+        }
+      });
+    }
+    setInterval(() => { if (!selectingBackup) location.reload(); }, 5000);
+  </script>
 </body>
 </html>

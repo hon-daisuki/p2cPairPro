@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.time.Instant;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -76,6 +77,53 @@ public class SubmissionStatusService {
 
     public synchronized boolean canLogin(int attendanceNo) {
         return attendanceNo == 99 || (attendanceNo >= 1 && attendanceNo <= 40 && !absentNumbers.contains(attendanceNo));
+    }
+
+    public synchronized byte[] exportBackup() throws java.io.IOException {
+        Map<Integer, Integer> steps = new HashMap<>();
+        for (int number = 1; number <= 40; number++) {
+            steps.put(number, stepOf(number));
+        }
+        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(Map.of(
+            "formatVersion", 1, "savedAt", Instant.now().toString(),
+            "tasks", TASKS, "steps", steps, "absentNumbers", new ArrayList<>(absentNumbers)
+        ));
+    }
+
+    public synchronized void importBackup(byte[] contents) throws java.io.IOException {
+        JsonNode backup = objectMapper.readTree(contents);
+        if (backup == null || !backup.path("formatVersion").isIntegralNumber()
+                || backup.path("formatVersion").asInt() != 1
+                || !objectMapper.valueToTree(TASKS).equals(backup.path("tasks"))) {
+            throw new IllegalArgumentException("保存ファイルの形式または課題が一致しません。");
+        }
+        JsonNode steps = backup.path("steps");
+        JsonNode absent = backup.path("absentNumbers");
+        if (!steps.isObject() || steps.size() != 40 || !absent.isArray()) {
+            throw new IllegalArgumentException("座席データが正しくありません。");
+        }
+        Map<Integer, Integer> restoredSteps = new HashMap<>();
+        Set<Integer> restoredAbsent = new HashSet<>();
+        for (int number = 1; number <= 40; number++) {
+            JsonNode step = steps.path(String.valueOf(number));
+            if (!step.isIntegralNumber() || !step.canConvertToInt()
+                    || step.asInt() < 0 || step.asInt() > TASKS.size()) {
+                throw new IllegalArgumentException("進捗データが正しくありません。");
+            }
+            restoredSteps.put(number, step.asInt());
+        }
+        for (JsonNode number : absent) {
+            if (!number.isIntegralNumber() || !number.canConvertToInt()
+                    || number.asInt() < 1 || number.asInt() > 40
+                    || !restoredAbsent.add(number.asInt())) {
+                throw new IllegalArgumentException("欠席データが正しくありません。");
+            }
+        }
+        submissionSteps.clear();
+        submissionSteps.putAll(restoredSteps);
+        absentNumbers.clear();
+        absentNumbers.addAll(restoredAbsent);
+        persist();
     }
 
     public synchronized void submit(int attendanceNo) {
