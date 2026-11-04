@@ -37,9 +37,16 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .seat.stage-1 { background:#fdd835; }
 .seat.stage-2 { background:#42a5f5; }
 .seat.stage-3 { background:#ec407a; }
+.seat.stage-4 { background:#fb8c00; }
+.seat.stage-5 { background:#ab47bc; }
+.seat.stage-6 { background:#26c6da; }
+.seat.stage-7 { background:#8d6e63; }
+.seat.stage-8 { background:#bdbdbd; }
+.seat.stage-9 { background:#5c6bc0; }
+.seat.stage-10 { background:#c0ca33; }
 .seat.stage-free { background:#63bd78; }
 .seat.absent { background:#aeb6b1; }
-.seat.stage-0,.seat.stage-2,.seat.stage-3,.seat.stage-free { color:#fff; }
+.seat.stage-0,.seat.stage-2,.seat.stage-3,.seat.stage-5,.seat.stage-7,.seat.stage-9,.seat.stage-free { color:#fff; }
 .seat.absent h2 { background:#7b8580; color:#fff; }
 .seat.mine { box-shadow:inset 0 0 0 3px #075f40; }
 .status { margin-top:auto; border-top:1px solid rgba(60,80,70,.45); padding-top:7px; font-size:12px; line-height:1.5; }
