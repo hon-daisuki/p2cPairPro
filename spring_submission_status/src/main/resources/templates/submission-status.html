@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>P2C 提出状況</title>
-  <link rel="stylesheet" th:href="@{/css/style.css(v='20261029')}">
+  <link rel="stylesheet" th:href="@{/css/style.css(v='20261104')}">
 </head>
 <body>
   <header>
@@ -50,7 +50,9 @@
 
   <main class="board">
     <div class="block" th:each="block, blockStat : ${blocks}" th:classappend="${block.size() == 4} ? 'mid' : ''">
-      <article th:each="number : ${block}" th:with="seat=${statuses.get(number)}"
+      <th:block th:each="number : ${block}">
+      <div th:if="${number == 0}" class="seat-empty" aria-hidden="true"></div>
+      <article th:if="${number != 0}" th:with="seat=${statuses.get(number)}"
           class="seat" th:classappend="${seat.colorClass} + (${attendanceNo == number} ? ' mine' : '')">
         <h2 th:text="${number}">1</h2>
         <p th:if="${seat.absent}" class="absent-label">欠席</p>
@@ -66,6 +68,7 @@
           </form>
         </div>
       </article>
+      </th:block>
     </div>
   </main>
 

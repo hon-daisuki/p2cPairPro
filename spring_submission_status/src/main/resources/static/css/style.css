@@ -31,6 +31,7 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .block:nth-child(4),.block:nth-child(8),.block:nth-child(12) { grid-row:4; }
 .block.mid { grid-template-columns:repeat(4,112px); }
 .seat { display:flex; flex-direction:column; min-height:145px; padding:7px; border:1px solid #9aa59e; text-align:center; }
+.seat-empty { min-height:145px; border:1px solid #9aa59e; }
 .seat h2 { margin:-7px -7px 8px; padding:6px; background:#ffe64e; font-size:19px; }
 .seat.stage-0 { background:#ef5350; }
 .seat.stage-1 { background:#fdd835; }
