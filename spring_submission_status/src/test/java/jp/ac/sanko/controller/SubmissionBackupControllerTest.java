@@ -44,12 +44,12 @@ class SubmissionBackupControllerTest {
         var file = new MockMultipartFile("backup", "saved.json", "application/json", saved);
         mvc.perform(multipart("/admin/restore").file(file).sessionAttr("attendanceNo", 1))
             .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("error"));
-        assertEquals("作業③", service.allStatuses().get(1).currentTask());
+        assertEquals("portfolio06提出", service.allStatuses().get(1).currentTask());
         mvc.perform(get("/admin/backup").sessionAttr("attendanceNo", 99))
             .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
             .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment;")));
         mvc.perform(multipart("/admin/restore").file(file).sessionAttr("attendanceNo", 99))
             .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("message"));
-        assertEquals("作業②", service.allStatuses().get(1).currentTask());
+        assertEquals("Qery", service.allStatuses().get(1).currentTask());
     }
 }
