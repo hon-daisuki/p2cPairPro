@@ -21,7 +21,9 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .number-buttons form { margin:0; }
 .number-buttons button { min-width:34px; background:#edf2ee; color:#234; }
 .number-buttons .off { background:#7b8580; color:#fff; }
-.board { display:grid; grid-template-columns:max-content max-content max-content; gap:0 36px; width:max-content; min-width:1120px; margin:26px auto; }
+.classroom { width:max-content; margin:24px auto; }
+.whiteboard { width:360px; height:58px; display:flex; align-items:center; justify-content:center; margin:0 auto 26px; border:3px solid #38936a; background:#fff; color:#246747; font-size:18px; font-weight:bold; }
+.board { display:grid; grid-template-columns:max-content max-content max-content; gap:0 36px; width:max-content; min-width:1120px; margin:0; }
 .block { display:grid; grid-template-columns:repeat(3,112px); }
 .block:nth-child(n+5):nth-child(-n+8) { grid-column:2; }
 .block:nth-child(n+9) { grid-column:3; }
@@ -32,7 +34,7 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .block.mid { grid-template-columns:repeat(4,112px); }
 .seat { display:flex; flex-direction:column; min-height:145px; padding:7px; border:1px solid #9aa59e; text-align:center; }
 .seat-empty { min-height:145px; border:1px solid #9aa59e; }
-.seat h2 { margin:-7px -7px 8px; padding:6px; background:#ffe64e; font-size:19px; }
+.seat h2 { margin:-7px -7px 8px; padding:6px; background:#ffe64e; color:var(--ink); font-size:19px; }
 .seat.stage-0 { background:#ef5350; }
 .seat.stage-1 { background:#fdd835; }
 .seat.stage-2 { background:#42a5f5; }
@@ -56,4 +58,4 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .seat-actions form { flex:1; }
 .seat-actions button { width:100%; padding:8px 4px; }
 .seat-actions .submit { margin-top:0; }
-@media (max-width:700px) { header,.bar { align-items:flex-start; flex-direction:column; } .board { margin-left:15px; } .login form { align-items:stretch; flex-direction:column; } }
+@media (max-width:700px) { header,.bar { align-items:flex-start; flex-direction:column; } .classroom { margin-left:15px; } .login form { align-items:stretch; flex-direction:column; } }

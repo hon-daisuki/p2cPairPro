@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class SubmissionStatusService {
+    private static final int PERMANENT_ABSENT_NUMBER = 18;
     private static final Logger logger = LoggerFactory.getLogger(SubmissionStatusService.class);
     private static final List<String> TASKS = List.of(
         "作業①", "作業②", "作業③", "作業④", "作業⑤", "作業⑥", "作業⑦", "作業⑧", "作業⑨",
@@ -39,6 +40,7 @@ public class SubmissionStatusService {
     public SubmissionStatusService(RestClient.Builder restClientBuilder, ObjectMapper objectMapper) {
         this.restClient = restClientBuilder.build();
         this.objectMapper = objectMapper;
+        absentNumbers.add(PERMANENT_ABSENT_NUMBER);
         for (int number = 1; number <= 40; number++) {
             this.submissionSteps.put(number, 0);
         }
@@ -62,6 +64,7 @@ public class SubmissionStatusService {
             absentNumbers.clear();
             storedSteps.fields().forEachRemaining(entry -> submissionSteps.put(Integer.valueOf(entry.getKey()), entry.getValue().asInt()));
             state.path("absentNumbers").forEach(number -> absentNumbers.add(number.asInt()));
+            absentNumbers.add(PERMANENT_ABSENT_NUMBER);
             logger.info("Submission status restored from Google Spreadsheet.");
         } catch (Exception exception) {
             logger.warn("Could not restore submission status from Google Spreadsheet. Starting with empty state.", exception);
@@ -77,7 +80,7 @@ public class SubmissionStatusService {
     }
 
     public synchronized boolean canLogin(int attendanceNo) {
-        return attendanceNo == 99 || (attendanceNo >= 1 && attendanceNo <= 40 && !absentNumbers.contains(attendanceNo));
+        return attendanceNo == 99 || (attendanceNo >= 1 && attendanceNo <= 40 && !isAbsent(attendanceNo));
     }
 
     public synchronized byte[] exportBackup() throws java.io.IOException {
@@ -124,6 +127,7 @@ public class SubmissionStatusService {
         submissionSteps.putAll(restoredSteps);
         absentNumbers.clear();
         absentNumbers.addAll(restoredAbsent);
+        absentNumbers.add(PERMANENT_ABSENT_NUMBER);
         persist();
     }
 
@@ -144,6 +148,9 @@ public class SubmissionStatusService {
     }
 
     public synchronized void toggleAbsent(int attendanceNo) {
+        if (attendanceNo == PERMANENT_ABSENT_NUMBER) {
+            return;
+        }
         if (absentNumbers.contains(attendanceNo)) {
             absentNumbers.remove(attendanceNo);
         } else {
@@ -153,7 +160,7 @@ public class SubmissionStatusService {
     }
 
     private SeatStatus statusOf(int attendanceNo) {
-        if (absentNumbers.contains(attendanceNo)) {
+        if (isAbsent(attendanceNo)) {
             return new SeatStatus(true, List.of(), "欠席", "absent");
         }
         int step = stepOf(attendanceNo);
@@ -166,6 +173,10 @@ public class SubmissionStatusService {
 
     private int stepOf(int attendanceNo) {
         return Math.max(0, Math.min(TASKS.size(), submissionSteps.getOrDefault(attendanceNo, 0)));
+    }
+
+    private boolean isAbsent(int attendanceNo) {
+        return attendanceNo == PERMANENT_ABSENT_NUMBER || absentNumbers.contains(attendanceNo);
     }
 
     private boolean storageConfigured() {

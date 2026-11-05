@@ -18,6 +18,43 @@ class SubmissionBackupTest {
     }
 
     @Test
+    void seat18RemainsAbsentAfterToggleAndBackupImport() throws Exception {
+        SubmissionStatusService service = service();
+        assertTrue(service.allStatuses().get(18).absent());
+        assertFalse(service.canLogin(18));
+        service.toggleAbsent(18);
+        service.submit(18);
+        service.back(18);
+        assertTrue(service.allStatuses().get(18).absent());
+        ObjectNode backup = (ObjectNode) mapper.readTree(service.exportBackup());
+        backup.set("absentNumbers", mapper.createArrayNode());
+        service.importBackup(mapper.writeValueAsBytes(backup));
+        assertTrue(service.allStatuses().get(18).absent());
+        assertFalse(service.canLogin(18));
+        assertTrue(mapper.readTree(service.exportBackup()).path("absentNumbers").toString().contains("18"));
+        service.toggleAbsent(17);
+        assertFalse(service.canLogin(17));
+        service.toggleAbsent(17);
+        assertTrue(service.canLogin(17));
+    }
+
+    @Test
+    void spreadsheetRestoreCannotReactivateSeat18() {
+        var builder = RestClient.builder();
+        var server = org.springframework.test.web.client.MockRestServiceServer.bindTo(builder).build();
+        var service = new SubmissionStatusService(builder, mapper);
+        ReflectionTestUtils.setField(service, "sheetsApiUrl", "https://example.test/state");
+        ReflectionTestUtils.setField(service, "sheetsToken", "test");
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://example.test/state"))
+            .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(
+                "{\"steps\":{\"18\":5},\"absentNumbers\":[]}", org.springframework.http.MediaType.APPLICATION_JSON));
+        service.restore();
+        assertTrue(service.allStatuses().get(18).absent());
+        assertFalse(service.canLogin(18));
+        server.verify();
+    }
+
+    @Test
     void restoresAllSeatsIncludingProgressHiddenByAbsence() throws Exception {
         SubmissionStatusService source = service();
         for (int number = 1; number <= 40; number++) {

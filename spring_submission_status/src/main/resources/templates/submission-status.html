@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>P2C 提出状況</title>
-  <link rel="stylesheet" th:href="@{/css/style.css(v='20261104-pair08')}">
+  <link rel="stylesheet" th:href="@{/css/style.css(v='20261105-seating')}">
 </head>
 <body>
   <header>
@@ -43,11 +43,14 @@
     <div class="number-buttons">
       <form th:each="number : ${#numbers.sequence(1, 40)}" th:action="@{/admin/absence}" method="post">
         <input type="hidden" name="targetNo" th:value="${number}">
-        <button th:text="${number}" th:classappend="${statuses.get(number).absent} ? 'off' : ''">1</button>
+        <button th:text="${number}" th:classappend="${statuses.get(number).absent} ? 'off' : ''"
+            th:disabled="${number == 18}" th:title="${number == 18} ? '18番は常に欠席です' : '出席・欠席を切り替え'">1</button>
       </form>
     </div>
   </section>
 
+  <section class="classroom" aria-label="座席表">
+  <div class="whiteboard">ホワイトボード</div>
   <main class="board">
     <div class="block" th:each="block, blockStat : ${blocks}" th:classappend="${block.size() == 4} ? 'mid' : ''">
       <th:block th:each="number : ${block}">
@@ -71,6 +74,7 @@
       </th:block>
     </div>
   </main>
+  </section>
 
   <script th:if="${attendanceNo != null}">
     let selectingBackup = false;
