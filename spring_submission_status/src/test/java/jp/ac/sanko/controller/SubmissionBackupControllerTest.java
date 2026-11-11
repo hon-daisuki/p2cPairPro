@@ -19,11 +19,14 @@ class SubmissionBackupControllerTest {
     @Test
     void seatsMatchPdfAndSeat18CannotLoginOrBeReactivated() throws Exception {
         var expected = java.util.List.of(
-            java.util.List.of(12, 8, 2), java.util.List.of(36, 17, 23), java.util.List.of(10, 14, 6), java.util.List.of(5, 37, 7),
-            java.util.List.of(39, 29, 28, 9), java.util.List.of(1, 20, 13, 16), java.util.List.of(30, 18, 21, 15), java.util.List.of(11, 40, 3, 22),
-            java.util.List.of(33, 24, 19), java.util.List.of(4, 26, 27), java.util.List.of(25, 31, 35), java.util.List.of(32, 38, 34));
+            java.util.List.of(20, 39, 38), java.util.List.of(1, 4, 28), java.util.List.of(14, 37, 7), java.util.List.of(36, 22, 33),
+            java.util.List.of(31, 40, 32, 13), java.util.List.of(27, 35, 24, 2), java.util.List.of(8, 9, 26, 25), java.util.List.of(11, 23, 17, 34),
+            java.util.List.of(29, 19, 0), java.util.List.of(30, 3, 16), java.util.List.of(10, 12, 5), java.util.List.of(6, 21, 15));
         mvc.perform(get("/")).andExpect(model().attribute("blocks", expected));
         assertEquals(40, expected.stream().flatMap(java.util.Collection::stream).distinct().count());
+        assertEquals(java.util.stream.IntStream.rangeClosed(1, 40).filter(n -> n != 18).boxed().toList(),
+            expected.stream().flatMap(java.util.Collection::stream).filter(n -> n != 0).sorted().toList());
+        assertEquals(15, expected.get(11).get(2));
         mvc.perform(post("/login").param("attendanceNo", "18"))
             .andExpect(flash().attributeExists("error"))
             .andExpect(request().sessionAttributeDoesNotExist("attendanceNo"));
@@ -44,12 +47,12 @@ class SubmissionBackupControllerTest {
         var file = new MockMultipartFile("backup", "saved.json", "application/json", saved);
         mvc.perform(multipart("/admin/restore").file(file).sessionAttr("attendanceNo", 1))
             .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("error"));
-        assertEquals("portfolio06提出", service.allStatuses().get(1).currentTask());
+        assertEquals("check提出", service.allStatuses().get(1).currentTask());
         mvc.perform(get("/admin/backup").sessionAttr("attendanceNo", 99))
             .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
             .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment;")));
         mvc.perform(multipart("/admin/restore").file(file).sessionAttr("attendanceNo", 99))
             .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("message"));
-        assertEquals("Qery", service.allStatuses().get(1).currentTask());
+        assertEquals("メッセージ出力", service.allStatuses().get(1).currentTask());
     }
 }

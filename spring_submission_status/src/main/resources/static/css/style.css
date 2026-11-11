@@ -23,6 +23,7 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .number-buttons .off { background:#7b8580; color:#fff; }
 .classroom { width:max-content; margin:24px auto; }
 .whiteboard { width:360px; height:58px; display:flex; align-items:center; justify-content:center; margin:0 auto 26px; border:3px solid #38936a; background:#fff; color:#246747; font-size:18px; font-weight:bold; }
+.teacher-desk { width:180px; height:40px; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; border:2px solid #52695d; background:#fff; font-size:16px; font-weight:bold; }
 .board { display:grid; grid-template-columns:max-content max-content max-content; gap:0 36px; width:max-content; min-width:1120px; margin:0; }
 .block { display:grid; grid-template-columns:repeat(3,112px); }
 .block:nth-child(n+5):nth-child(-n+8) { grid-column:2; }
@@ -39,13 +40,15 @@ input { width:130px; padding:8px; border:1px solid #9aa59e; border-radius:4px; }
 .seat.stage-1 { background:#fdd835; }
 .seat.stage-2 { background:#42a5f5; }
 .seat.stage-3 { background:#ec407a; }
+.seat.stage-4 { background:#b39ddb; }
+.seat.stage-5 { background:#80deea; }
 .seat.stage-free { background:#63bd78; }
 .seat.absent { background:#aeb6b1; }
 .seat.stage-0,.seat.stage-2,.seat.stage-3,.seat.stage-free { color:#fff; }
 .seat.absent h2 { background:#7b8580; color:#fff; }
 .seat.mine { box-shadow:inset 0 0 0 3px #075f40; }
 .status { margin-top:auto; border-top:1px solid rgba(60,80,70,.45); padding-top:7px; font-size:12px; line-height:1.5; }
-.status p { margin:0; }.status .done { text-decoration:line-through; }.status .current { font-size:14px; font-weight:bold; }.absent-label { margin:auto; font-weight:bold; }
+.status p { margin:0; }.status .current { font-size:14px; font-weight:bold; overflow-wrap:anywhere; }.absent-label { margin:auto; font-weight:bold; }
 .submit { margin-top:8px; width:100%; background:#075f40; }
 .seat-actions { display:flex; gap:5px; margin-top:8px; }
 .seat-actions form { flex:1; }

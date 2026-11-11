@@ -22,9 +22,9 @@ import jp.ac.sanko.model.SubmissionStatusService;
 @Controller
 public class SubmissionStatusController {
     private static final List<List<Integer>> BLOCKS = List.of(
-        List.of(12, 8, 2), List.of(36, 17, 23), List.of(10, 14, 6), List.of(5, 37, 7),
-        List.of(39, 29, 28, 9), List.of(1, 20, 13, 16), List.of(30, 18, 21, 15), List.of(11, 40, 3, 22),
-        List.of(33, 24, 19), List.of(4, 26, 27), List.of(25, 31, 35), List.of(32, 38, 34)
+        List.of(20, 39, 38), List.of(1, 4, 28), List.of(14, 37, 7), List.of(36, 22, 33),
+        List.of(31, 40, 32, 13), List.of(27, 35, 24, 2), List.of(8, 9, 26, 25), List.of(11, 23, 17, 34),
+        List.of(29, 19, 0), List.of(30, 3, 16), List.of(10, 12, 5), List.of(6, 21, 15)
     );
 
     private final SubmissionStatusService service;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>P2C 提出状況</title>
-  <link rel="stylesheet" th:href="@{/css/style.css(v='20261106-portfolio06')}">
+  <link rel="stylesheet" th:href="@{/css/style.css(v='20261111-check')}">
 </head>
 <body>
   <header>
@@ -51,6 +51,7 @@
 
   <section class="classroom" aria-label="座席表">
   <div class="whiteboard">ホワイトボード</div>
+  <div class="teacher-desk">教卓</div>
   <main class="board">
     <div class="block" th:each="block, blockStat : ${blocks}" th:classappend="${block.size() == 4} ? 'mid' : ''">
       <th:block th:each="number : ${block}">
@@ -60,7 +61,7 @@
         <h2 th:text="${number}">1</h2>
         <p th:if="${seat.absent}" class="absent-label">欠席</p>
         <div th:unless="${seat.absent}" class="status">
-          <p class="current" th:text="${seat.currentTask == 'free!' ? 'free!' : '【作成中】' + seat.currentTask}">【作成中】namedQery</p>
+          <p class="current" th:text="${seat.currentTask == 'free!' ? 'free!' : '【作成中】' + seat.currentTask}">【作成中】入力チェック</p>
         </div>
         <div class="seat-actions" th:if="${attendanceNo == number and !seat.absent}">
           <form th:if="${seat.currentTask != 'free!'}" th:action="@{/submit}" method="post">

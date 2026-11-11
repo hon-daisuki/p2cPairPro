@@ -58,7 +58,7 @@ class SubmissionBackupTest {
     void restoresAllSeatsIncludingProgressHiddenByAbsence() throws Exception {
         SubmissionStatusService source = service();
         for (int number = 1; number <= 40; number++) {
-            for (int step = 0; step < number % 5; step++) source.submit(number);
+            for (int step = 0; step < number % 7; step++) source.submit(number);
         }
         source.toggleAbsent(2);
         byte[] backup = source.exportBackup();
@@ -68,18 +68,18 @@ class SubmissionBackupTest {
         assertEquals(source.allStatuses(), target.allStatuses());
         assertFalse(target.canLogin(2));
         target.toggleAbsent(2);
-        assertEquals("portfolio06提出", target.allStatuses().get(2).currentTask());
+        assertEquals("check提出", target.allStatuses().get(2).currentTask());
     }
 
     @Test
-    void progressesThroughEveryPortfolio06TaskAndBackWithoutChangingOtherSeats() {
+    void progressesThroughEveryCheckTaskAndBackWithoutChangingOtherSeats() {
         SubmissionStatusService service = service();
-        var tasks = java.util.List.of("namedQery", "Qery", "portfolio06提出", "リアぺ", "free!");
+        var tasks = java.util.List.of("入力チェック", "メッセージ出力", "check提出", "lesson05_01", "lesson05_02", "リアぺ", "free!");
         for (int step = 0; step < tasks.size(); step++) {
             var seat = service.allStatuses().get(1);
             assertEquals(tasks.get(step), seat.currentTask());
             assertEquals(step == tasks.size() - 1 ? "stage-free" : "stage-" + step, seat.colorClass());
-            assertEquals("namedQery", service.allStatuses().get(2).currentTask());
+            assertEquals("入力チェック", service.allStatuses().get(2).currentTask());
             service.submit(1);
         }
         assertEquals("free!", service.allStatuses().get(1).currentTask());
@@ -88,7 +88,7 @@ class SubmissionBackupTest {
             assertEquals(tasks.get(step), service.allStatuses().get(1).currentTask());
         }
         service.back(1);
-        assertEquals("namedQery", service.allStatuses().get(1).currentTask());
+        assertEquals("入力チェック", service.allStatuses().get(1).currentTask());
     }
 
     @Test
