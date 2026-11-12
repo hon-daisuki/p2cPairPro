@@ -68,18 +68,18 @@ class SubmissionBackupTest {
         assertEquals(source.allStatuses(), target.allStatuses());
         assertFalse(target.canLogin(2));
         target.toggleAbsent(2);
-        assertEquals("check提出", target.allStatuses().get(2).currentTask());
+        assertEquals("lesson05_01", target.allStatuses().get(2).currentTask());
     }
 
     @Test
     void progressesThroughEveryCheckTaskAndBackWithoutChangingOtherSeats() {
         SubmissionStatusService service = service();
-        var tasks = java.util.List.of("入力チェック", "メッセージ出力", "check提出", "lesson05_01", "lesson05_02", "リアぺ", "free!");
+        var tasks = java.util.List.of("独自入力チェック", "UniqueCheck提出", "lesson05_01", "lesson05_02", "lesson05_03", "リアぺ", "free!");
         for (int step = 0; step < tasks.size(); step++) {
             var seat = service.allStatuses().get(1);
             assertEquals(tasks.get(step), seat.currentTask());
             assertEquals(step == tasks.size() - 1 ? "stage-free" : "stage-" + step, seat.colorClass());
-            assertEquals("入力チェック", service.allStatuses().get(2).currentTask());
+            assertEquals("独自入力チェック", service.allStatuses().get(2).currentTask());
             service.submit(1);
         }
         assertEquals("free!", service.allStatuses().get(1).currentTask());
@@ -88,7 +88,7 @@ class SubmissionBackupTest {
             assertEquals(tasks.get(step), service.allStatuses().get(1).currentTask());
         }
         service.back(1);
-        assertEquals("入力チェック", service.allStatuses().get(1).currentTask());
+        assertEquals("独自入力チェック", service.allStatuses().get(1).currentTask());
     }
 
     @Test
