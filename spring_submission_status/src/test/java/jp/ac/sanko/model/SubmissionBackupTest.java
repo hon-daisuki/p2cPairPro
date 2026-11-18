@@ -75,7 +75,7 @@ class SubmissionBackupTest {
     void progressesThroughEveryPair09TaskAndBackWithoutChangingOtherSeats() {
         SubmissionStatusService service = service();
         var tasks = java.util.List.of("作業①", "作業②", "作業③", "作業④", "作業⑤", "作業⑥",
-            "作業⑦", "作業⑧", "作業⑨", "作業⑩", "pair09提出", "リアぺ", "free!");
+            "作業⑦", "作業⑧", "作業⑨", "作業⑩", "リアぺ", "pair09提出", "free!");
         for (int step = 0; step < tasks.size(); step++) {
             var seat = service.allStatuses().get(1);
             assertEquals(tasks.get(step), seat.currentTask());
