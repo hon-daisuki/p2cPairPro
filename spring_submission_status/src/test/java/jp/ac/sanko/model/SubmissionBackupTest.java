@@ -58,7 +58,7 @@ class SubmissionBackupTest {
     void restoresAllSeatsIncludingProgressHiddenByAbsence() throws Exception {
         SubmissionStatusService source = service();
         for (int number = 1; number <= 40; number++) {
-            for (int step = 0; step < number % 7; step++) source.submit(number);
+            for (int step = 0; step < number % 13; step++) source.submit(number);
         }
         source.toggleAbsent(2);
         byte[] backup = source.exportBackup();
@@ -68,18 +68,19 @@ class SubmissionBackupTest {
         assertEquals(source.allStatuses(), target.allStatuses());
         assertFalse(target.canLogin(2));
         target.toggleAbsent(2);
-        assertEquals("lesson05_01", target.allStatuses().get(2).currentTask());
+        assertEquals("作業③", target.allStatuses().get(2).currentTask());
     }
 
     @Test
-    void progressesThroughEveryCheckTaskAndBackWithoutChangingOtherSeats() {
+    void progressesThroughEveryPair09TaskAndBackWithoutChangingOtherSeats() {
         SubmissionStatusService service = service();
-        var tasks = java.util.List.of("独自入力チェック", "UniqueCheck提出", "lesson05_01", "lesson05_02", "lesson05_03", "リアぺ", "free!");
+        var tasks = java.util.List.of("作業①", "作業②", "作業③", "作業④", "作業⑤", "作業⑥",
+            "作業⑦", "作業⑧", "作業⑨", "作業⑩", "pair09提出", "リアぺ", "free!");
         for (int step = 0; step < tasks.size(); step++) {
             var seat = service.allStatuses().get(1);
             assertEquals(tasks.get(step), seat.currentTask());
             assertEquals(step == tasks.size() - 1 ? "stage-free" : "stage-" + step, seat.colorClass());
-            assertEquals("独自入力チェック", service.allStatuses().get(2).currentTask());
+            assertEquals("作業①", service.allStatuses().get(2).currentTask());
             service.submit(1);
         }
         assertEquals("free!", service.allStatuses().get(1).currentTask());
@@ -88,7 +89,7 @@ class SubmissionBackupTest {
             assertEquals(tasks.get(step), service.allStatuses().get(1).currentTask());
         }
         service.back(1);
-        assertEquals("独自入力チェック", service.allStatuses().get(1).currentTask());
+        assertEquals("作業①", service.allStatuses().get(1).currentTask());
     }
 
     @Test
