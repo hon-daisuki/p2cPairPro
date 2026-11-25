@@ -23,8 +23,7 @@ public class SubmissionStatusService {
     private static final int PERMANENT_ABSENT_NUMBER = 18;
     private static final Logger logger = LoggerFactory.getLogger(SubmissionStatusService.class);
     private static final List<String> TASKS = List.of(
-        "作業①", "作業②", "作業③", "作業④", "作業⑤", "作業⑥",
-        "作業⑦", "作業⑧", "作業⑨", "作業⑩", "リアぺ", "pair09提出"
+        "portfolio07提出", "リアぺ", "お土産"
     );
     private final Map<Integer, Integer> submissionSteps = new HashMap<>();
     private final Set<Integer> absentNumbers = new HashSet<>();
