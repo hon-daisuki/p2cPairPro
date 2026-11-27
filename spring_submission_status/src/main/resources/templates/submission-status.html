@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>P2C 提出状況</title>
-  <link rel="stylesheet" th:href="@{/css/style.css(v='20261127-morning')}">
+  <link rel="stylesheet" th:href="@{/css/style.css(v='20261127-lesson07')}">
 </head>
 <body>
   <header>
@@ -61,7 +61,7 @@
         <h2 th:text="${number}">1</h2>
         <p th:if="${seat.absent}" class="absent-label">欠席</p>
         <div th:unless="${seat.absent}" class="status">
-          <p class="current" th:text="${seat.colorClass == 'stage-free' ? seat.currentTask : '【作成中】' + seat.currentTask}">【作成中】リアぺ</p>
+          <p class="current" th:text="${seat.colorClass == 'stage-free' or seat.currentTask == 'free（午前中）' ? seat.currentTask : '【作成中】' + seat.currentTask}">【作成中】リアぺ</p>
         </div>
         <div class="seat-actions" th:if="${attendanceNo == number and !seat.absent}">
           <form th:if="${seat.colorClass != 'stage-free'}" th:action="@{/submit}" method="post">

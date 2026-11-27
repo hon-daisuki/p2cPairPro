@@ -58,7 +58,7 @@ class SubmissionBackupTest {
     void restoresAllSeatsIncludingProgressHiddenByAbsence() throws Exception {
         SubmissionStatusService source = service();
         for (int number = 1; number <= 40; number++) {
-            for (int step = 0; step < (number + 1) % 2; step++) source.submit(number);
+            for (int step = 0; step < (number + 1) % 6; step++) source.submit(number);
         }
         source.toggleAbsent(2);
         byte[] backup = source.exportBackup();
@@ -68,13 +68,13 @@ class SubmissionBackupTest {
         assertEquals(source.allStatuses(), target.allStatuses());
         assertFalse(target.canLogin(2));
         target.toggleAbsent(2);
-        assertEquals("free（午前中）", target.allStatuses().get(2).currentTask());
+        assertEquals("Lesson07_02", target.allStatuses().get(2).currentTask());
     }
 
     @Test
-    void progressesThroughMorningTasksAndBackWithoutChangingOtherSeats() {
+    void progressesThroughLesson07TasksAndBackWithoutChangingOtherSeats() {
         SubmissionStatusService service = service();
-        var tasks = java.util.List.of("リアぺ", "free（午前中）");
+        var tasks = java.util.List.of("リアぺ", "free（午前中）", "Lesson07_01", "Lesson07_02", "Lesson07_03", "free！");
         for (int step = 0; step < tasks.size(); step++) {
             var seat = service.allStatuses().get(1);
             assertEquals(tasks.get(step), seat.currentTask());
@@ -82,7 +82,7 @@ class SubmissionBackupTest {
             assertEquals("リアぺ", service.allStatuses().get(2).currentTask());
             service.submit(1);
         }
-        assertEquals("free（午前中）", service.allStatuses().get(1).currentTask());
+        assertEquals("free！", service.allStatuses().get(1).currentTask());
         for (int step = tasks.size() - 2; step >= 0; step--) {
             service.back(1);
             assertEquals(tasks.get(step), service.allStatuses().get(1).currentTask());

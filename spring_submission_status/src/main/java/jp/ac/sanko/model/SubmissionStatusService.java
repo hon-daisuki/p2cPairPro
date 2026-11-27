@@ -23,7 +23,7 @@ public class SubmissionStatusService {
     private static final int PERMANENT_ABSENT_NUMBER = 18;
     private static final Logger logger = LoggerFactory.getLogger(SubmissionStatusService.class);
     private static final List<String> TASKS = List.of(
-        "リアぺ"
+        "リアぺ", "free（午前中）", "Lesson07_01", "Lesson07_02", "Lesson07_03"
     );
     private final Map<Integer, Integer> submissionSteps = new HashMap<>();
     private final Set<Integer> absentNumbers = new HashSet<>();
@@ -165,7 +165,7 @@ public class SubmissionStatusService {
         int step = stepOf(attendanceNo);
         List<String> completed = new ArrayList<>(TASKS.subList(0, step));
         if (step == TASKS.size()) {
-            return new SeatStatus(false, completed, "free（午前中）", "stage-free");
+            return new SeatStatus(false, completed, "free！", "stage-free");
         }
         return new SeatStatus(false, completed, TASKS.get(step), "stage-" + step);
     }
