@@ -39,7 +39,6 @@ class SubmissionBackupControllerTest {
     void onlyAdminCanExportAndImport() throws Exception {
         ReflectionTestUtils.setField(service, "sheetsApiUrl", "");
         ReflectionTestUtils.setField(service, "sheetsToken", "");
-        service.submit(1);
         byte[] saved = service.exportBackup();
         service.submit(1);
         mvc.perform(get("/admin/backup")).andExpect(status().isForbidden());
@@ -47,7 +46,7 @@ class SubmissionBackupControllerTest {
         var file = new MockMultipartFile("backup", "saved.json", "application/json", saved);
         mvc.perform(multipart("/admin/restore").file(file).sessionAttr("attendanceNo", 1))
             .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("error"));
-        assertEquals("お土産", service.allStatuses().get(1).currentTask());
+        assertEquals("free（午前中）", service.allStatuses().get(1).currentTask());
         mvc.perform(get("/admin/backup").sessionAttr("attendanceNo", 99))
             .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
             .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment;")));
